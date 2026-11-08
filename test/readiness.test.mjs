@@ -128,6 +128,7 @@ test("unattended: only from the panel; no chat yes, every other rule stands", ()
 	assert.match(steps, /exactly 0,00 €/);
 	assert.match(steps, /any payment method/);
 	assert.match(steps, /CAPTCHA/);
-	assert.match(steps, /never bypass them/);
+	assert.match(steps, /never bypass it/);
+	assert.match(steps, /auto, terms included/);
 	assert.match(bookingSteps(makeBooking({ from: OR, to: CA, date: "2026-11-10", time: "08:39" }, { now: NOW }), PASS, NOW), /wait for the user's yes/);
 });

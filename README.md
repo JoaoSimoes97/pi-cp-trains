@@ -93,7 +93,9 @@ Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Tít
 
 **30 minutes before the opening** (or when you press **Check now**), the module checks what it can see itself (the pass covers the day, the card number is kept, CP's terms accepted for the booking) and asks pi to open myCP and confirm you are signed in, with **pi drives the browser** on and cp.pt allowed. pi answers with `tool_cp_trains_readiness_report`; the panel shows the answer, and you get a notification when something is wrong, or when pi did not answer within 5 minutes. Nothing is bought.
 
-**Unattended** (a box in the booking form, yours only: pi's proposals never are): pi does not wait for a yes in chat before **Confirmar**; your Schedule was that yes. Every other rule stands (exactly the expected total, no payment method, no CAPTCHA, stop on any doubt), and the app's own **Allow once** questions still come: until pi cockpit can take a pre-approval for one booking, someone has to press them.
+**Unattended** (a box in the booking form, yours only: pi's proposals never are): pi does not wait for a yes in chat before **Confirmar**; your Schedule was that yes. Every other rule stands (exactly the expected total, no payment method, no CAPTCHA, stop on any doubt).
+
+**Set cp.pt to "auto, terms included"** in pi cockpit's **Site trust…** (pi cockpit 0.10 or later). Then pi cockpit asks nothing on CP's buttons unless a page asks for money (a total above zero, or a way to pay), and ticks CP's terms box for you: with the Green Pass the total is 0,00 €, so a booking needs nobody there. At "ask" (the default), each of CP's buy, submit and confirm buttons asks **Allow once**, and a question nobody answers ends after 5 minutes: the booking then reports *stopped*. Not yet seen on the real site: whether the passenger step shows the full fare before the pass is applied (that would ask once at auto).
 
 **Locked screen: works.** Tested 2026-11-08 with `test-probe/locked-screen.probe.mjs`: pi cockpit's real browser tools, driven by its fake pi in a throwaway profile, bought a fake ticket end to end (52 steps, screenshot included) with Windows locked the whole time. To run it (never your real profile; it needs a pi cockpit development checkout):
 
@@ -105,8 +107,6 @@ PI_COCKPIT_DIR=/path/to/pi-cockpit WAIT_BEFORE_S=60 node --test test-probe/locke
 
 What stands between this and booking at 3 a.m. with nobody there:
 
-1. **Signing in.** CP signs you out after a few minutes, and pi never types passwords. Planned: an app feature that fills a login kept in the OS's protected store (Electron safeStorage, Windows Credential Manager) on one exact sign-in page, the way a password manager does, without pi ever seeing it. Not a plain file.
-2. **The final confirm.** The app asks **Allow once** before a buy/confirm click. Planned: a one-off approval you create when you schedule: one site, one train, a 15-minute window, only when the page shows the expected total, used once. Not the Test sites list, which would turn off every confirmation on cp.pt for good.
-3. **The computer awake** at that moment (a Windows wake timer).
-
-Both app features belong to pi cockpit itself, with their own docs and tests.
+1. **Signing in.** pi never types passwords. A cp.pt sign-in lasted at least 25 minutes idle; overnight is to be checked. If CP signs you out overnight, planned: a pi cockpit feature that fills a login kept in the OS's protected store (Electron safeStorage, Windows Credential Manager) on one exact sign-in page, the way a password manager does, without pi ever seeing it. Not a plain file.
+2. **The final confirm: done** with pi cockpit 0.10's site trust (above). A one-off approval per booking is for steps that cost money, later.
+3. **The computer awake** at that moment: leave it on and plugged in (a locked screen is fine).
