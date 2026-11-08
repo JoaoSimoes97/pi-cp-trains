@@ -92,3 +92,20 @@ test("the fake site: a total above 0 ends at a payment page, nothing bought", as
 		await fake.close();
 	}
 });
+
+test("the fake site: more than 24 h away, the pass is not in the Desconto list", async () => {
+	const fake = await startFakeCp();
+	try {
+		const o = fake.origin;
+		const login = await fetch(`${o}/login`, { method: "POST", body: new URLSearchParams({ back: "/" }), redirect: "manual" });
+		const cookie = login.headers.get("set-cookie").split(";")[0];
+		const step1Url = (await fetch(`${o}/pt/iniciar?train=ic599&date=2099-01-10&pax=1&terms=on`, { headers: { cookie }, redirect: "manual" })).headers.get("location");
+		const step1 = await (await fetch(`${o}${step1Url}`, { headers: { cookie } })).text();
+		assert.match(step1, /Cartão Jovem/);
+		assert.doesNotMatch(step1, /Passe Ferroviário Verde/);
+		const cart = step1Url.match(/cart=(c\d+)/)[1];
+		assert.equal((await fetch(`${o}/pt/compra-online?cart=${cart}&step=2&desconto=verde&info=V0012345678`, { headers: { cookie } })).status, 400);
+	} finally {
+		await fake.close();
+	}
+});

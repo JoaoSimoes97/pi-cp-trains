@@ -17,6 +17,8 @@ const TRAINS = [
 	{ id: "ic509", train: "IC 509", time: "06:39", arrives: "09:43", price: 28.05, full: true },
 	{ id: "ic521", train: "IC 521", time: "08:39", arrives: "11:43", price: 28.05 },
 	{ id: "ic523", train: "IC 523", time: "22:39", arrives: "01:43", price: 28.05 },
+	// more than 24 h away: the pass is not offered yet (as on cp.pt)
+	{ id: "ic599", train: "IC 599", time: "23:39", arrives: "02:43", price: 28.05, passNotYet: true },
 ];
 const CARRIAGES = [
 	{ n: 24, load: 60, free: [91, 82, 42] },
@@ -87,7 +89,10 @@ export function startFakeCp(port = 0) {
 			const step = q.get("step");
 			const timer = "<p>Tempo para comprar: 15:00</p>";
 			if (step === "1") {
-				const opts = Object.entries(DISCOUNTS).map(([k, [name]]) => `<option value="${k}">${name}</option>`).join("");
+				const opts = Object.entries(DISCOUNTS)
+					.filter(([k]) => !(k === "verde" && cart.train.passNotYet))
+					.map(([k, [name]]) => `<option value="${k}">${name}</option>`)
+					.join("");
 				return html(
 					200,
 					page(
@@ -105,6 +110,7 @@ export function startFakeCp(port = 0) {
 				if (q.has("desconto")) {
 					const d = q.get("desconto");
 					if (!Object.hasOwn(DISCOUNTS, d)) return html(400, page("Erro", "<p>Desconto inválido.</p>"));
+					if (d === "verde" && cart.train.passNotYet) return html(400, page("Dados dos passageiros", "<p>Desconto indisponível.</p>"));
 					if (d === "verde" && !/^[A-Z]\d{6,14}$/.test(q.get("info") ?? "")) return html(400, page("Dados dos passageiros", "<p>Informação adicional: campo obrigatório.</p>"));
 					cart.discount = d;
 					cart.info = q.get("info") ?? "";

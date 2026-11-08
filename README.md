@@ -86,7 +86,7 @@ Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Tít
 
 ## Not known yet
 
-- The exact rule of the pass's window (is a train 25 h away refused?). It is a setting per booking (`openHoursBefore`, 24 by default).
+- The exact minute the pass's window opens. Seen: a train 26 h away opens the checkout, but **"Passe Ferroviário Verde" is missing from *Desconto***; one 20 h away has it. pi treats a missing option as "not open yet" and tries again. The window is a setting per booking (`openHoursBefore`, 24 by default).
 - How long a cp.pt sign-in lasts. Its sign-in page has **no "remember me"**.
 
 ## Readiness check and unattended bookings

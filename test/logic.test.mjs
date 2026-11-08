@@ -107,6 +107,7 @@ test("pi's steps carry the link, the expected total and the stop rules", () => {
 	assert.match(text, /\/pt\/sem-lugares/);
 	assert.match(text, /"Pagamento"[\s\S]*press "Confirmar"/);
 	assert.match(text, /any payment method/);
+	assert.match(text, /option is not in the list, CP has not opened the train for the pass yet/);
 	assert.match(text, /Do not press "Pedir reembolso"/);
 	assert.match(text, /keep the seat CP chose/);
 	assert.match(text, /Cartão CP number \(the module has none/);
