@@ -61,9 +61,16 @@ test("the fake site's flow: terms, sign-in, pass with card number, 0,00 €, a r
 		assert.match(step3, /Carruagem C24 · Lugares L91/);
 		assert.match(step3, /Descontos aplicados: Passe Ferroviário Verde/);
 		assert.match(step3, /Avançar para pagamento/);
-		const done = await fetch(`${o}/pt/compra-online`, { method: "POST", headers: { cookie }, body: new URLSearchParams({ cart }), redirect: "manual" });
-		assert.match(done.headers.get("location"), /ref=FAKE-100000/);
-		assert.deepEqual(fake.purchases, [{ reference: "FAKE-100000", train: "IC 521", time: "08:39", date: "2099-01-10", pax: 1, discount: "verde", card: "V0012345678", seat: "C24 L91", total: 0 }]);
+		const pagamento = await (await fetch(`${o}/pt/compra-online`, { method: "POST", headers: { cookie }, body: new URLSearchParams({ cart }) })).text();
+		assert.match(pagamento, /Pagamento/);
+		assert.match(pagamento, /Confirmar/);
+		assert.doesNotMatch(pagamento, /método de pagamento/);
+		const done = await fetch(`${o}/pt/confirmar-compra`, { method: "POST", headers: { cookie }, body: new URLSearchParams({ cart }), redirect: "manual" });
+		assert.equal(done.headers.get("location"), "/pt/sucesso-bilhetes");
+		assert.match(await (await fetch(`${o}/pt/sucesso-bilhetes`, { headers: { cookie } })).text(), /Compra realizada com sucesso[\s\S]*Ver viagens/);
+		const details = await (await fetch(`${o}/pt/mycp/viagens/137000000/detalhes`, { headers: { cookie } })).text();
+		assert.match(details, /Nº Comboio IC 521 · Carruagem C24 · Lugares L91 · Estado Confirmado · Preço total € 0,00/);
+		assert.deepEqual(fake.purchases, [{ id: "137000000", train: "IC 521", time: "08:39", date: "2099-01-10", pax: 1, discount: "verde", card: "V0012345678", seat: "C24 L91", total: 0 }]);
 	} finally {
 		await fake.close();
 	}
@@ -79,6 +86,7 @@ test("the fake site: a total above 0 ends at a payment page, nothing bought", as
 		await fetch(`${o}/pt/compra-online?cart=${cart}&step=2&desconto=inteiro`, { headers: { cookie } });
 		const pay = await (await fetch(`${o}/pt/compra-online`, { method: "POST", headers: { cookie }, body: new URLSearchParams({ cart }) })).text();
 		assert.match(pay, /Escolha o método de pagamento/);
+		assert.equal((await fetch(`${o}/pt/confirmar-compra`, { method: "POST", headers: { cookie }, body: new URLSearchParams({ cart }) })).status, 400);
 		assert.deepEqual(fake.purchases, []);
 	} finally {
 		await fake.close();

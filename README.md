@@ -76,14 +76,16 @@ Signed in, with the pass, stopped before the last button (pi's steps follow exac
 3. `/pt/compra-online`, with **15 minutes** to finish (*Tempo para comprar*), in three steps:
    1. *Dados dos passageiros*: name, email, phone, NIF and the identity document come from your myCP profile (add the document there: pi never types one). **Desconto** starts on *Inteiro*: pi sets **Passe Ferroviário Verde**, which adds **Informação adicional**, your **Cartão CP number** (kept with the pass; it is printed on the card).
    2. *Reserva de lugares*: CP picks a seat. To choose: **Alterar lugares**, a carriage (*Carruagem 24, 60% lotação*; a full one says *lotada*), a seat *disponível*, **Guardar novos lugares**. A booking keeps CP's seat or takes the emptiest carriage, with an optional wish ("with a socket"). *Total a pagar* shows **0,00 €** with the pass.
-   3. A dialog, *Confirme os dados da reserva antes de avançar*: trip, seat, *Descontos aplicados: Passe Ferroviário Verde*, total, and **Avançar para pagamento**.
-4. What follows **Avançar para pagamento** has not been seen (with 0 € CP may issue the ticket at once). pi stops at any payment page.
+   A dialog, *Confirme os dados da reserva antes de avançar*: trip, seat, *Descontos aplicados: Passe Ferroviário Verde*, total, and **Avançar para pagamento** (it does not pay: it opens the last step).
+   3. *Pagamento*: ticket delivery and billing details from your profile, *Total a pagar*. At **0,00 € there is no payment method at all**, only **Cancelar** / **Confirmar**. pi stops if any payment method shows up.
+4. **Confirmar** → `/pt/sucesso-bilhetes`, *Compra realizada com sucesso*, tickets by email. **Ver viagens** → *As minhas viagens* → the trip's page `/pt/mycp/viagens/<id>/detalhes` (*Nº Comboio*, *Carruagem*, *Lugares*, *Estado: Confirmado*, *Preço total*, and **Pedir reembolso** / **Trocar viagem** / **Ver bilhete**). pi reports the trip id, train, carriage and seat.
+
+Bought this way once, for real, on 2026-11-08: IC 621, Lisboa Oriente 11:39 → Porto Campanhã, carriage 24 seat 42, 0,00 €.
 
 Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Títulos no cartão* ("Passe Ferroviário Verde Digital 30 — 17/10/2026 até 15/11/2026"), with the card number above it. The Green Pass is taken on Intercidades.
 
 ## Not known yet
 
-- What **Avançar para pagamento** does with a 0 € total.
 - The exact rule of the pass's window (is a train 25 h away refused?). It is a setting per booking (`openHoursBefore`, 24 by default).
 - How long a cp.pt sign-in lasts. Its sign-in page has **no "remember me"**.
 

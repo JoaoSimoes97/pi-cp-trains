@@ -105,6 +105,9 @@ test("pi's steps carry the link, the expected total and the stop rules", () => {
 	assert.match(text, /Aceitar termos e condições enumerados de seguida/);
 	assert.match(text, /accepted CP's sale conditions/); // scheduled in the panel
 	assert.match(text, /\/pt\/sem-lugares/);
+	assert.match(text, /"Pagamento"[\s\S]*press "Confirmar"/);
+	assert.match(text, /any payment method/);
+	assert.match(text, /Do not press "Pedir reembolso"/);
 	assert.match(text, /keep the seat CP chose/);
 	assert.match(text, /Cartão CP number \(the module has none/);
 	const withCard = makePass({ validFrom: "2026-11-01", days: 30, cardNumber: "v0012345678" }, now);

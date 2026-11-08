@@ -147,18 +147,44 @@ export function startFakeCp(port = 0) {
 			}
 			return html(404, page("Passo desconhecido", ""));
 		}
+		// "Avançar para pagamento": step 3 "Pagamento". At 0,00 € only Cancelar / Confirmar (as on
+		// cp.pt); above 0, payment methods (where pi must stop).
 		if (u.pathname === "/pt/compra-online" && req.method === "POST") {
 			return readForm().then((f) => {
 				const cart = carts.get(f.get("cart"));
 				if (!cart || !signedIn || cart.total === undefined) return html(400, page("Erro", "<p>Sessão expirada.</p>"));
-				if (cart.total > 0) return html(200, page("Pagamento", `<p>Total a pagar ${eur(cart.total)}</p><p>Escolha o método de pagamento: MB WAY · Cartão</p>`));
-				carts.delete(f.get("cart"));
-				const reference = `FAKE-${String(100000 + purchases.length)}`;
-				purchases.push({ reference, train: cart.train.train, time: cart.train.time, date: cart.date, pax: cart.pax, discount: cart.discount, card: cart.info, seat: `C${cart.seat.carriage} L${cart.seat.seat}`, total: cart.total });
-				go(`/pt/bilhete?ref=${reference}`);
+				const delivery = `<p>Dados para envio de bilhetes</p><label for="email">Email *</label><input id="email" value="passageiro@example.com" readonly><p>Dados para faturação</p>`;
+				if (cart.total > 0) return html(200, page("Pagamento", `<p>Tempo para comprar: 12:00</p>${delivery}<p>Total a pagar ${eur(cart.total)}</p><p>Escolha o método de pagamento: MB WAY · Multibanco · Cartão</p>`));
+				return html(
+					200,
+					page(
+						"Pagamento",
+						`<p>Tempo para comprar: 12:00</p>${delivery}<p>Total a pagar · Taxas incluídas <b>${eur(cart.total)}</b></p>
+						<form method="get" action="/pt/resultado-pesquisa"><button type="submit">Cancelar</button></form>
+						<form method="post" action="/pt/confirmar-compra">${hidden({ cart: f.get("cart") })}<button type="submit">Confirmar</button></form>`,
+					),
+				);
 			});
 		}
-		if (u.pathname === "/pt/bilhete") return html(200, page("Compra concluída", `<p>Referência: <b>${esc(q.get("ref"))}</b> · Total 0,00€</p>`));
+		if (u.pathname === "/pt/confirmar-compra" && req.method === "POST") {
+			return readForm().then((f) => {
+				const cart = carts.get(f.get("cart"));
+				if (!cart || !signedIn || cart.total !== 0) return html(400, page("Erro", "<p>Sessão expirada.</p>"));
+				carts.delete(f.get("cart"));
+				const id = String(137000000 + purchases.length);
+				purchases.push({ id, train: cart.train.train, time: cart.train.time, date: cart.date, pax: cart.pax, discount: cart.discount, card: cart.info, seat: `C${cart.seat.carriage} L${cart.seat.seat}`, total: cart.total });
+				go("/pt/sucesso-bilhetes");
+			});
+		}
+		if (u.pathname === "/pt/sucesso-bilhetes") return html(200, page("Compra realizada com sucesso", `<p>A sua compra foi registada com sucesso.</p><a href="/pt/mycp/viagens">Ver viagens</a>`));
+		if (u.pathname === "/pt/mycp/viagens") return html(200, page("As minhas viagens", `<ul>${purchases.map((p) => `<li><a href="/pt/mycp/viagens/${p.id}/detalhes">${esc(p.date)} · Estado Confirmado</a></li>`).join("")}</ul>`));
+		const trip = u.pathname.match(/^\/pt\/mycp\/viagens\/(\d+)\/detalhes$/);
+		if (trip) {
+			const p = purchases.find((x) => x.id === trip[1]);
+			if (!p) return html(404, page("Viagem não encontrada", ""));
+			const [c, l] = p.seat.split(" ");
+			return html(200, page("Detalhe da viagem", `<p>Nº Comboio ${p.train} · Carruagem ${c} · Lugares ${l} · Estado Confirmado · Preço total € ${p.total.toFixed(2).replace(".", ",")}</p><button>Pedir reembolso</button><button>Trocar viagem</button><button>Ver bilhete</button>`));
+		}
 		if (u.pathname === "/login" && req.method === "GET") {
 			return html(
 				200,
