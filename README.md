@@ -89,6 +89,18 @@ Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Tít
 - The exact rule of the pass's window (is a train 25 h away refused?). It is a setting per booking (`openHoursBefore`, 24 by default).
 - How long a cp.pt sign-in lasts. Its sign-in page has **no "remember me"**.
 
+## Readiness check and unattended bookings
+
+**30 minutes before the opening** (or when you press **Check now**), the module checks what it can see itself (the pass covers the day, the card number is kept, CP's terms accepted for the booking) and asks pi to open myCP and confirm you are signed in, with **pi drives the browser** on and cp.pt allowed. pi answers with `tool_cp_trains_readiness_report`; the panel shows the answer, and you get a notification when something is wrong, or when pi did not answer within 5 minutes. Nothing is bought.
+
+**Unattended** (a box in the booking form, yours only: pi's proposals never are): pi does not wait for a yes in chat before **Confirmar**; your Schedule was that yes. Every other rule stands (exactly the expected total, no payment method, no CAPTCHA, stop on any doubt), and the app's own **Allow once** questions still come: until pi cockpit can take a pre-approval for one booking, someone has to press them.
+
+**Locked screen: works.** Tested 2026-11-08 with `test-probe/locked-screen.probe.mjs`: pi cockpit's real browser tools, driven by its fake pi in a throwaway profile, bought a fake ticket end to end (52 steps, screenshot included) with Windows locked the whole time. To run it (never your real profile; it needs a pi cockpit development checkout):
+
+```bash
+PI_COCKPIT_DIR=/path/to/pi-cockpit WAIT_BEFORE_S=60 node --test test-probe/locked-screen.probe.mjs
+```
+
 ## Towards unattended
 
 What stands between this and booking at 3 a.m. with nobody there:

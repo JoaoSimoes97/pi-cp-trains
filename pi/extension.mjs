@@ -156,6 +156,22 @@ export default function (pi, { dataDir } = {}) {
 	});
 
 	tool(
+		"readiness_report",
+		"Report a CP readiness check",
+		"Say what a readiness check found for a booking: ok, or the problems (signed out of cp.pt, pi drives the browser off, the site not allowed, what the module listed). Only after the check the module asked for.",
+		obj({ id: S("The booking's id"), ok: { type: "boolean", description: "Everything in place" }, problems: { type: "array", items: { type: "string" }, description: "Short phrases, empty when ok" } }, ["id", "ok"]),
+		async ({ id, ok, problems = [] }) =>
+			store.updateDoc(dataDir, (doc) => {
+				const b = doc.bookings.find((x) => x.id === id);
+				if (!b) throw new Error(`no booking ${id}`);
+				if (!b.readiness?.askedAt) throw new Error(`no readiness check was asked for booking ${id}`);
+				const list = (Array.isArray(problems) ? problems : []).map((p) => String(p).replace(/\s+/g, " ").trim().slice(0, 160)).filter(Boolean).slice(0, 10);
+				b.readiness = { askedAt: b.readiness.askedAt, reportedAt: new Date().toISOString(), ok: ok === true && list.length === 0, problems: list };
+				return { id, readiness: b.readiness };
+			}),
+	);
+
+	tool(
 		"booking_report",
 		"Report a CP booking",
 		"Say how a started booking ended: booked (with the reference and total from CP's page), failed (CP would not), or stopped (a rule said stop).",

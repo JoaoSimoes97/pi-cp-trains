@@ -62,14 +62,14 @@ export function startFakeCp(port = 0) {
 			).join("");
 			const t = TRAINS.find((x) => x.id === q.get("sel"));
 			const dialog = t
-				? `<section role="dialog" aria-label="Viagens selecionadas"><h2>Viagens selecionadas</h2><p>${t.time} ${esc(base.departureStation)} → ${t.arrives} ${esc(base.arrivalStation)}</p>
+				? `<div aria-label="Viagens selecionadas"><h2>Viagens selecionadas</h2><p>${t.time} ${esc(base.departureStation)} → ${t.arrives} ${esc(base.arrivalStation)}</p>
 					<p>Total a pagar · Preço indicativo ${t.price.toFixed(2)}€</p>
 					<form method="get" action="/pt/iniciar">${hidden({ train: t.id, date: base.startDate, pax: base.passageiros })}
-					<label><input type="checkbox" name="terms" value="on"> Aceitar termos e condições enumerados de seguida</label>
+					<p><input type="checkbox" id="terms" name="terms" value="on" style="width:20px;height:20px"> <label for="terms">Aceitar termos e condições enumerados de seguida</label></p>
 					<ul><li>Li e aceito as Condições de venda da Bilheteira Online.</li><li>Li e aceito os Termos e a Política de Privacidade.</li><li>Tenho mais de 16 anos.</li></ul>
-					<button type="submit">Avançar para compra</button></form></section>`
+					<button type="submit">Avançar para compra</button></form></div>`
 				: "";
-			return html(200, page(`${esc(base.departureStation)} › ${esc(base.arrivalStation)}`, `<p>${esc(base.startDate)}</p><ul>${rows}</ul>${dialog}`));
+			return html(200, page(`${esc(base.departureStation)} › ${esc(base.arrivalStation)}`, `${dialog}<p>${esc(base.startDate)}</p><ul>${rows}</ul>`));
 		}
 		if (u.pathname === "/pt/iniciar") {
 			if (q.get("terms") !== "on") return html(400, page("Aceite os termos", "<p>Tem de aceitar os termos e condições.</p>"));

@@ -17,7 +17,7 @@ import { appApi } from "./lib/appapi.mjs";
 import { searchLink } from "./lib/links.mjs";
 import { makePass, passStatus } from "./lib/pass.mjs";
 import { approve, cancel, describe, makeBooking, nextMoment, OPEN, opensAt } from "./lib/schedule.mjs";
-import { startBooking, statusText, tick } from "./lib/scheduler.mjs";
+import { checkBooking, startBooking, statusText, tick } from "./lib/scheduler.mjs";
 import { allStations, findStation } from "./lib/stations.mjs";
 import * as store from "./lib/store.mjs";
 
@@ -132,6 +132,10 @@ const server = http.createServer(async (req, res) => {
 				const r = await startBooking(DATA, api, String(b.id ?? ""), "Run now, pressed in the panel");
 				refreshStatus();
 				return send(r.started ? 200 : 409, r.started ? { ok: true } : { error: r.reason });
+			}
+			if (b.action === "check-now") {
+				const r = await checkBooking(DATA, api, String(b.id ?? ""));
+				return send(r.asked ? 200 : 409, r.asked ? { ok: true } : { error: r.problems.join("; ") });
 			}
 			if (b.action === "search-link") {
 				const doc = store.loadDoc(DATA);
