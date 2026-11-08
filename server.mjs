@@ -84,7 +84,7 @@ const byId = (doc, id) => {
 // The panel's actions. Each changes the file under the lock; "run-now" then asks pi.
 const ACTIONS = {
 	"pass-set": (doc, b) => {
-		doc.pass = makePass({ kind: "verde", validFrom: b.validFrom, validUntil: b.validUntil, days: b.days, source: "manual" });
+		doc.pass = makePass({ kind: "verde", validFrom: b.validFrom, validUntil: b.validUntil, days: b.days, cardNumber: b.cardNumber, source: "manual" });
 	},
 	"pass-clear": (doc) => {
 		doc.pass = null;

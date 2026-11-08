@@ -23,6 +23,7 @@
 						<label for="pass-days">Period</label>
 						<select id="pass-days"><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option><option value="">Last day below</option></select>
 						<label for="pass-until">Last day</label><input id="pass-until" type="date">
+						<label for="pass-card">Cartão CP no.</label><input id="pass-card" placeholder="V0012345678" autocomplete="off" title="CP's checkout asks for it when the pass is chosen">
 					</div>
 					<div class="actions"><button class="primary" type="submit">Save</button><button id="pass-clear" class="danger" type="button">Forget the pass</button></div>
 				</form>
@@ -47,10 +48,13 @@
 					<label for="b-pax">Passengers</label><input id="b-pax" type="number" min="1" max="9" value="1">
 					<label for="b-class">Class</label><select id="b-class"><option value="2">2ª / Turística</option><option value="1">1ª / Conforto</option></select>
 					<label for="b-pass">Use the pass</label><input id="b-pass" type="checkbox" checked>
+					<label for="b-seat">Seat</label><select id="b-seat"><option value="cp">Keep CP's choice</option><option value="emptiest">Emptiest carriage</option></select>
+					<label for="b-seatnote">Seat wish</label><input id="b-seatnote" placeholder="optional, e.g. with a socket" autocomplete="off">
 					<label for="b-total">Expected total €</label><input id="b-total" type="number" min="0" step="0.01" value="0">
 					<label for="b-hours">CP opens it</label><span><input id="b-hours" type="number" min="0" max="1440" value="24" style="width:5em"> h before departure</span>
 				</div>
 				<p id="b-preview" class="note"></p>
+				<p class="note">Schedule (or Approve, for one pi proposed) also means you accept CP's <i>Condições de venda</i>, <i>Termos</i> and <i>Política de Privacidade</i> for this purchase and are over 16: pi ticks CP's box for you.</p>
 				<div class="actions">
 					<button class="primary" type="submit">Schedule</button>
 					<button id="b-fav" type="button">Keep as favourite</button>

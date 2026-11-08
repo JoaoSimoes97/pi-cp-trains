@@ -97,11 +97,25 @@ test("pi's steps carry the link, the expected total and the stop rules", () => {
 	const pass = makePass({ validFrom: "2026-11-01", days: 30 }, now);
 	const text = bookingSteps(b, pass, now);
 	assert.match(text, /resultado-pesquisa\?passageiros=1&selectedClass=2&startDate=2026-11-10/);
-	assert.match(text, /exactly 0\.00 €/);
+	assert.match(text, /exactly 0,00 €/);
 	assert.match(text, /Never type a password/);
 	assert.match(text, /CAPTCHA/);
 	assert.match(text, /wait for the user's yes/);
 	assert.match(text, /valid on 2026-11-10/);
+	assert.match(text, /Aceitar termos e condições enumerados de seguida/);
+	assert.match(text, /accepted CP's sale conditions/); // scheduled in the panel
+	assert.match(text, /\/pt\/sem-lugares/);
+	assert.match(text, /keep the seat CP chose/);
+	assert.match(text, /Cartão CP number \(the module has none/);
+	const withCard = makePass({ validFrom: "2026-11-01", days: 30, cardNumber: "v0012345678" }, now);
+	assert.equal(withCard.cardNumber, "V0012345678");
+	assert.match(bookingSteps(b, withCard, now), /Cartão CP number V0012345678/);
+	const seat = makeBooking({ from: OR, to: CA, date: "2026-11-10", time: "08:39", seatChoice: "emptiest", seatNote: "with a socket" }, { now });
+	assert.match(bookingSteps(seat, withCard, now), /Alterar lugares[\s\S]*lowest "lotação"[\s\S]*with a socket[\s\S]*Guardar novos lugares/);
+	const proposed = makeBooking({ from: OR, to: CA, date: "2026-11-10", time: "08:39" }, { by: "pi", now });
+	assert.equal(proposed.termsAcceptedAt, null);
+	assert.match(bookingSteps(proposed, withCard, now), /NOT accepted CP's terms/);
+	assert.throws(() => makePass({ validFrom: "2026-11-01", days: 30, cardNumber: "1234" }), /cardNumber/);
 	assert.match(bookingSteps(b, null, now), /WARNING: the pass/);
 	assert.match(startPrompt(b), new RegExp(`tool_cp_trains_booking_steps with id "${b.id}"`));
 });

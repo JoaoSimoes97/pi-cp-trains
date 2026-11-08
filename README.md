@@ -16,7 +16,7 @@ Its server starts with the app (`"start": "launch"`), so bookings fire while the
 
 ## Using it
 
-1. **The pass.** In the panel, set its first day and period (30, 60 or 90 days), or its last day. Or press **Read it from myCP with pi…**: a request is typed at pi's prompt (you press Enter) for pi to open your myCP wallet (Carteira ▸ Cartões de Mobilidade) in the Browser panel, where you sign in yourself, and keep the dates it reads.
+1. **The pass.** In the panel, set its first day and period (30, 60 or 90 days), or its last day, and your Cartão CP number. Or press **Read it from myCP with pi…**: a request is typed at pi's prompt (you press Enter) for pi to open your myCP wallet (*A minha carteira* ▸ your Cartão CP Digital) in the Browser panel, where you sign in yourself, and keep the dates and the card number it reads.
 2. **A booking.** Under **New booking**: stations, date, departure time, the train (optional), passengers, class, the pass, and the total you expect (0 € with the pass). The panel shows when CP opens it. **Schedule** is your approval.
    pi can propose a booking too (`tool_cp_trains_booking_propose`): it waits, marked *waiting-approval*, until you press **Approve** in the panel. pi cannot schedule one on its own.
 3. **At its moment** (keep pi cockpit open with a pi tab running, the computer awake, and **pi drives the browser** on under Safety):
@@ -28,7 +28,9 @@ Its server starts with the app (`"start": "launch"`), so bookings fire while the
 ## The rules pi follows
 
 - Only the Browser panel, on cp.pt and CP's own sign-in and payment pages. **Never CP's internal API** (it is not offered to anyone else; the module builds only cp.pt's own search address).
-- **Never** a password, a code or card details: the app's browser tools refuse those fields anyway. You sign in yourself, and you pay on CP's own page (with the pass the total is 0 €).
+- **Never** a password, a code, card details or an identity document number (the app's browser tools refuse the first three anyway). You sign in yourself, your profile fills in your document, and you pay on CP's own page (with the pass the total is 0 €).
+- CP's terms box is ticked only for a booking you scheduled or approved yourself.
+- Everything inside CP's 15 minutes; if they run out, once more from the start.
 - No CAPTCHA or bot-check bypass: pi stops and hands over.
 - The total must be exactly the expected one, and pi asks for your yes in chat before the final confirm.
 - Not open yet or sold out: three more looks, 30 seconds apart, then it reports *failed*. No hammering.
@@ -65,11 +67,25 @@ They never touch cp.pt or a real profile: temporary data folders, a stand-in for
 
 To watch pi run a booking against the fake site, in an **isolated** pi cockpit run (never your real profile): start `node test/fake-cp/server.mjs`, start the app with `CP_TRAINS_SITE=http://127.0.0.1:<port>` in its environment, and Run now a booking. The override takes only a `http://127.0.0.1:<port>` origin; anything else is ignored.
 
-## Not known yet (to check once, with you there)
+## cp.pt's checkout, as walked on 2026-11-08
 
-- What cp.pt asks after **Comprar** when signed in: where the pass is chosen, seat choice, the final button's words. The steps say "follow CP's steps" for now.
-- The exact rule of the pass's window (24 h before departure? which trains?). It is a setting per booking (`openHoursBefore`, 24 by default).
-- How long a cp.pt sign-in lasts in the Browser panel, and whether its sign-in page has "remember me".
+Signed in, with the pass, stopped before the last button (pi's steps follow exactly this, `lib/steps.mjs`; the fake site copies it):
+
+1. Results: **Selecionar ida das HH:MM às HH:MM**, then **Comprar esta viagem**. A dialog, *Viagens selecionadas*, shows the full fare as *Preço indicativo* and one box, **Aceitar termos e condições enumerados de seguida** (CP's sale conditions, terms and privacy policy, over 16), then **Avançar para compra**. Your **Schedule** (or **Approve**) in the panel is your acceptance for that purchase; pi ticks the box only for a booking that has it.
+2. No seats or cannot start: `/pt/sem-lugares`, *Não foi possível iniciar o processo de compra*. pi tries again (3 times, 30 s apart).
+3. `/pt/compra-online`, with **15 minutes** to finish (*Tempo para comprar*), in three steps:
+   1. *Dados dos passageiros*: name, email, phone, NIF and the identity document come from your myCP profile (add the document there: pi never types one). **Desconto** starts on *Inteiro*: pi sets **Passe Ferroviário Verde**, which adds **Informação adicional**, your **Cartão CP number** (kept with the pass; it is printed on the card).
+   2. *Reserva de lugares*: CP picks a seat. To choose: **Alterar lugares**, a carriage (*Carruagem 24, 60% lotação*; a full one says *lotada*), a seat *disponível*, **Guardar novos lugares**. A booking keeps CP's seat or takes the emptiest carriage, with an optional wish ("with a socket"). *Total a pagar* shows **0,00 €** with the pass.
+   3. A dialog, *Confirme os dados da reserva antes de avançar*: trip, seat, *Descontos aplicados: Passe Ferroviário Verde*, total, and **Avançar para pagamento**.
+4. What follows **Avançar para pagamento** has not been seen (with 0 € CP may issue the ticket at once). pi stops at any payment page.
+
+Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Títulos no cartão* ("Passe Ferroviário Verde Digital 30 — 17/10/2026 até 15/11/2026"), with the card number above it. The Green Pass is taken on Intercidades.
+
+## Not known yet
+
+- What **Avançar para pagamento** does with a 0 € total.
+- The exact rule of the pass's window (is a train 25 h away refused?). It is a setting per booking (`openHoursBefore`, 24 by default).
+- How long a cp.pt sign-in lasts. Its sign-in page has **no "remember me"**.
 
 ## Towards unattended
 

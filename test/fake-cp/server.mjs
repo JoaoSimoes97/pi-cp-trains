@@ -1,7 +1,12 @@
 // test/fake-cp/server.mjs — a stand-in for cp.pt, so the module (and pi in a smoke run) is
-// tested without ever touching the real site. Plain HTML forms, in Portuguese like CP's, in the
-// order seen on cp.pt: results → Comprar → sign-in (if not signed in) → ticket type → confirm →
-// ticket. Nothing is real: no account, no payment, the "password" is not checked.
+// tested without ever touching the real site. Plain HTML forms with cp.pt's own words, in the
+// order walked on cp.pt on 2026-11-08 (lib/steps.mjs has the same):
+//   results → "Selecionar ida das …" → dialog "Viagens selecionadas" (terms box, "Avançar para
+//   compra") → sign-in if needed → /pt/compra-online: 1 Dados dos passageiros (Desconto,
+//   Informação adicional) → 2 Reserva de lugares → 3 "Confirme os dados da reserva antes de
+//   avançar" → "Avançar para pagamento" → ticket (total 0) or a payment page (total > 0).
+// A full train goes to /pt/sem-lugares. Nothing is real: no account, no payment; the "password"
+// is not checked.
 //
 //   node test/fake-cp/server.mjs [port]      prints FAKE_CP_READY http://127.0.0.1:<port>
 //   GET /__purchases                          what was "bought" (JSON), for tests
@@ -9,18 +14,29 @@ import http from "node:http";
 import { pathToFileURL } from "node:url";
 
 const TRAINS = [
+	{ id: "ic509", train: "IC 509", time: "06:39", arrives: "09:43", price: 28.05, full: true },
 	{ id: "ic521", train: "IC 521", time: "08:39", arrives: "11:43", price: 28.05 },
 	{ id: "ic523", train: "IC 523", time: "22:39", arrives: "01:43", price: 28.05 },
 ];
+const CARRIAGES = [
+	{ n: 24, load: 60, free: [91, 82, 42] },
+	{ n: 23, load: 68, free: [12, 55] },
+	{ n: 22, load: 82, free: [107, 95] },
+	{ n: 21, load: 100, full: true, free: [] },
+];
+const DISCOUNTS = { inteiro: ["Inteiro", 1], verde: ["Passe Ferroviário Verde", 0], jovem: ["Cartão Jovem", 0.75] };
 const page = (title, body) => `<!doctype html><meta charset="utf-8"><title>${title} | Fake CP</title><main><h1>${title}</h1>${body}</main>`;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const eur = (n) => `${n.toFixed(2).replace(".", ",")}€`;
+const hidden = (o) => Object.entries(o).map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`).join("");
 
 export function startFakeCp(port = 0) {
 	const purchases = [];
-	const carts = new Map(); // cart id -> { train, date, pax, type }
+	const carts = new Map();
 	let seq = 0;
 	const server = http.createServer((req, res) => {
 		const u = new URL(req.url, "http://127.0.0.1");
+		const q = u.searchParams;
 		const signedIn = /(?:^|;\s*)fake_session=ok/.test(req.headers.cookie ?? "");
 		const html = (code, body, headers = {}) => {
 			res.writeHead(code, { "content-type": "text/html; charset=utf-8", ...headers });
@@ -39,66 +55,119 @@ export function startFakeCp(port = 0) {
 			return res.end(JSON.stringify(purchases));
 		}
 		if (u.pathname === "/pt/resultado-pesquisa") {
-			const q = u.searchParams;
+			const base = { passageiros: q.get("passageiros") ?? "1", selectedClass: q.get("selectedClass") ?? "2", startDate: q.get("startDate") ?? "", departureStation: q.get("departureStation") ?? "", arrivalStation: q.get("arrivalStation") ?? "" };
 			const rows = TRAINS.map(
 				(t) => `<li><p>Partida às ${t.time} · Chegada às ${t.arrives} · ${t.train} · Preço ${t.price.toFixed(2)}€</p>
-				<form method="get" action="/pt/comprar"><input type="hidden" name="train" value="${t.id}"><input type="hidden" name="date" value="${esc(q.get("startDate"))}"><input type="hidden" name="pax" value="${esc(q.get("passageiros") ?? 1)}">
-				<button type="submit" aria-label="Selecionar ida das ${t.time} às ${t.arrives}">Selecionar ida e Comprar</button></form></li>`,
+				<form method="get" action="/pt/resultado-pesquisa">${hidden({ ...base, sel: t.id })}<button type="submit">Selecionar ida das ${t.time} às ${t.arrives}</button></form></li>`,
 			).join("");
-			return html(200, page(`${esc(q.get("departureStation"))} › ${esc(q.get("arrivalStation"))}`, `<p>${esc(q.get("startDate"))}</p><ul>${rows}</ul>`));
+			const t = TRAINS.find((x) => x.id === q.get("sel"));
+			const dialog = t
+				? `<section role="dialog" aria-label="Viagens selecionadas"><h2>Viagens selecionadas</h2><p>${t.time} ${esc(base.departureStation)} → ${t.arrives} ${esc(base.arrivalStation)}</p>
+					<p>Total a pagar · Preço indicativo ${t.price.toFixed(2)}€</p>
+					<form method="get" action="/pt/iniciar">${hidden({ train: t.id, date: base.startDate, pax: base.passageiros })}
+					<label><input type="checkbox" name="terms" value="on"> Aceitar termos e condições enumerados de seguida</label>
+					<ul><li>Li e aceito as Condições de venda da Bilheteira Online.</li><li>Li e aceito os Termos e a Política de Privacidade.</li><li>Tenho mais de 16 anos.</li></ul>
+					<button type="submit">Avançar para compra</button></form></section>`
+				: "";
+			return html(200, page(`${esc(base.departureStation)} › ${esc(base.arrivalStation)}`, `<p>${esc(base.startDate)}</p><ul>${rows}</ul>${dialog}`));
 		}
-		if (u.pathname === "/pt/comprar") {
+		if (u.pathname === "/pt/iniciar") {
+			if (q.get("terms") !== "on") return html(400, page("Aceite os termos", "<p>Tem de aceitar os termos e condições.</p>"));
 			if (!signedIn) return go(`/login?back=${encodeURIComponent(u.pathname + u.search)}`);
-			const t = TRAINS.find((x) => x.id === u.searchParams.get("train"));
-			if (!t) return html(404, page("Comboio não encontrado", ""));
+			const t = TRAINS.find((x) => x.id === q.get("train"));
+			if (!t || t.full) return go("/pt/sem-lugares");
 			const id = `c${++seq}`;
-			carts.set(id, { train: t, date: u.searchParams.get("date"), pax: Number(u.searchParams.get("pax") ?? 1) });
-			return html(
-				200,
-				page(
-					"Tipo de bilhete",
-					`<p>${t.train} ${t.time}</p><form method="get" action="/pt/confirmar"><input type="hidden" name="cart" value="${id}">
-					<label for="type">Tipo de bilhete / desconto</label>
-					<select id="type" name="type"><option value="normal">Normal</option><option value="verde">Passe Ferroviário Verde</option><option value="jovem">Cartão Jovem (25%)</option></select>
-					<button type="submit">Continuar</button></form>`,
-				),
-			);
+			carts.set(id, { train: t, date: q.get("date"), pax: Number(q.get("pax") ?? 1), discount: "inteiro", info: "" });
+			return go(`/pt/compra-online?cart=${id}&step=1`);
 		}
-		if (u.pathname === "/pt/confirmar" && req.method === "GET") {
-			const cart = carts.get(u.searchParams.get("cart"));
-			if (!cart) return html(404, page("Carrinho expirado", ""));
-			cart.type = u.searchParams.get("type") ?? "normal";
-			const each = cart.type === "verde" ? 0 : cart.type === "jovem" ? cart.train.price * 0.75 : cart.train.price;
-			cart.total = Math.round(each * cart.pax * 100) / 100;
-			return html(
-				200,
-				page(
-					"Confirmar compra",
-					`<p>${cart.train.train} ${cart.train.time} · ${esc(cart.date)} · ${cart.pax} passageiro(s) · ${esc(cart.type)}</p><p>Total: <b>${cart.total.toFixed(2).replace(".", ",")} €</b></p>
-					<form method="post" action="/pt/confirmar"><input type="hidden" name="cart" value="${esc(u.searchParams.get("cart"))}"><button type="submit">Confirmar compra</button></form>`,
-				),
-			);
+		if (u.pathname === "/pt/sem-lugares") return html(200, page("Não foi possível iniciar o processo de compra", "<p>De momento, não é possível iniciar a compra com os parâmetros selecionados.</p>"));
+		if (u.pathname === "/pt/compra-online" && req.method === "GET") {
+			const cart = carts.get(q.get("cart"));
+			if (!cart || !signedIn) return html(410, page("Tempo esgotado", "<p>O tempo para comprar terminou.</p>"));
+			const step = q.get("step");
+			const timer = "<p>Tempo para comprar: 15:00</p>";
+			if (step === "1") {
+				const opts = Object.entries(DISCOUNTS).map(([k, [name]]) => `<option value="${k}">${name}</option>`).join("");
+				return html(
+					200,
+					page(
+						"Dados dos passageiros",
+						`${timer}<form method="get" action="/pt/compra-online">${hidden({ cart: q.get("cart"), step: "2" })}
+						<label for="nome">Nome e apelido *</label><input id="nome" value="Passageiro Teste" readonly>
+						<label for="doc">Número do documento de identificação *</label><input id="doc" value="00000000" readonly>
+						<label for="desconto">Desconto *</label><select id="desconto" name="desconto">${opts}</select>
+						<label for="info">Informação adicional</label><input id="info" name="info" placeholder="Insira a informação necessária">
+						<button type="submit">Avançar</button></form>`,
+					),
+				);
+			}
+			if (step === "2") {
+				if (q.has("desconto")) {
+					const d = q.get("desconto");
+					if (!Object.hasOwn(DISCOUNTS, d)) return html(400, page("Erro", "<p>Desconto inválido.</p>"));
+					if (d === "verde" && !/^[A-Z]\d{6,14}$/.test(q.get("info") ?? "")) return html(400, page("Dados dos passageiros", "<p>Informação adicional: campo obrigatório.</p>"));
+					cart.discount = d;
+					cart.info = q.get("info") ?? "";
+					cart.total = Math.round(cart.train.price * DISCOUNTS[d][1] * cart.pax * 100) / 100;
+					cart.seat ??= { carriage: 22, seat: 107 };
+				}
+				if (cart.total === undefined) return html(400, page("Erro", "<p>Dados dos passageiros em falta.</p>"));
+				// "Guardar novos lugares": a carriage that is not full, a seat that is free
+				if (q.has("carriage")) {
+					const c = CARRIAGES.find((x) => x.n === Number(q.get("carriage")));
+					const s = Number(q.get("seat"));
+					if (!c || c.full || !c.free.includes(s)) return html(400, page("Reserva de lugares", "<p>Lugar indisponível.</p>"));
+					cart.seat = { carriage: c.n, seat: s };
+				}
+				const edit = q.get("alterar") === "1";
+				const picker = edit
+					? `<form method="get" action="/pt/compra-online">${hidden({ cart: q.get("cart"), step: "2" })}<p>Selecione a carruagem</p>
+						${CARRIAGES.map((c) => `<label><input type="radio" name="carriage" value="${c.n}" ${c.full ? "disabled" : ""}> Carruagem ${c.n}, ${c.load}% lotação${c.full ? ", lotada" : ""}</label>`).join("")}
+						<p>Selecione o lugar na carruagem</p><label for="seat">Assento</label><input id="seat" name="seat" inputmode="numeric">
+						<p>${CARRIAGES.filter((c) => !c.full).map((c) => `Carruagem ${c.n}: ${c.free.map((s) => `Assento ${s}, disponível`).join(", ")}`).join(" · ")}</p>
+						<button type="submit">Guardar novos lugares</button></form>`
+					: `<form method="get" action="/pt/compra-online">${hidden({ cart: q.get("cart"), step: "2", alterar: "1" })}<button type="submit">Alterar lugares</button></form>`;
+				return html(
+					200,
+					page(
+						"Reserva de lugares",
+						`${timer}<p>Carruagem C${cart.seat.carriage} · Lugares L${cart.seat.seat}</p>${picker}<p>Total a pagar · Taxas incluídas <b>${eur(cart.total)}</b></p><form method="get" action="/pt/compra-online">${hidden({ cart: q.get("cart"), step: "3" })}<button type="submit">Avançar</button></form>`,
+					),
+				);
+			}
+			if (step === "3") {
+				return html(
+					200,
+					page(
+						"Confirme os dados da reserva antes de avançar",
+						`${timer}<p>IDA · ${esc(cart.date)} · ${cart.train.time} → ${cart.train.arrives} · Carruagem C${cart.seat.carriage} · Lugares L${cart.seat.seat}</p><p>Descontos aplicados: ${DISCOUNTS[cart.discount][0]}</p>
+						<p>Total a pagar · Taxas incluídas <b>${eur(cart.total)}</b></p><form method="post" action="/pt/compra-online">${hidden({ cart: q.get("cart") })}<button type="submit">Avançar para pagamento</button></form>`,
+					),
+				);
+			}
+			return html(404, page("Passo desconhecido", ""));
 		}
-		if (u.pathname === "/pt/confirmar" && req.method === "POST") {
+		if (u.pathname === "/pt/compra-online" && req.method === "POST") {
 			return readForm().then((f) => {
 				const cart = carts.get(f.get("cart"));
-				if (!cart || !signedIn) return html(400, page("Erro", "<p>Sessão expirada.</p>"));
+				if (!cart || !signedIn || cart.total === undefined) return html(400, page("Erro", "<p>Sessão expirada.</p>"));
+				if (cart.total > 0) return html(200, page("Pagamento", `<p>Total a pagar ${eur(cart.total)}</p><p>Escolha o método de pagamento: MB WAY · Cartão</p>`));
 				carts.delete(f.get("cart"));
 				const reference = `FAKE-${String(100000 + purchases.length)}`;
-				purchases.push({ reference, train: cart.train.train, time: cart.train.time, date: cart.date, pax: cart.pax, type: cart.type, total: cart.total });
+				purchases.push({ reference, train: cart.train.train, time: cart.train.time, date: cart.date, pax: cart.pax, discount: cart.discount, card: cart.info, seat: `C${cart.seat.carriage} L${cart.seat.seat}`, total: cart.total });
 				go(`/pt/bilhete?ref=${reference}`);
 			});
 		}
-		if (u.pathname === "/pt/bilhete") return html(200, page("Compra concluída", `<p>Referência: <b>${esc(u.searchParams.get("ref"))}</b></p>`));
+		if (u.pathname === "/pt/bilhete") return html(200, page("Compra concluída", `<p>Referência: <b>${esc(q.get("ref"))}</b> · Total 0,00€</p>`));
 		if (u.pathname === "/login" && req.method === "GET") {
 			return html(
 				200,
 				page(
-					"Iniciar sessão",
-					`<form method="post" action="/login"><input type="hidden" name="back" value="${esc(u.searchParams.get("back") ?? "/")}">
+					"Já tem registo no myCP?",
+					`<form method="post" action="/login">${hidden({ back: q.get("back") ?? "/" })}
 					<label for="user">Email</label><input id="user" name="user" type="email" autocomplete="username">
 					<label for="pw">Palavra-passe</label><input id="pw" name="pw" type="password" autocomplete="current-password">
-					<button type="submit">Entrar</button></form>`,
+					<button type="submit">Entrar agora</button></form>`,
 				),
 			);
 		}
@@ -108,7 +177,7 @@ export function startFakeCp(port = 0) {
 				go(back.startsWith("/") && !back.startsWith("//") ? back : "/", { "set-cookie": "fake_session=ok; Path=/; HttpOnly; SameSite=Lax" });
 			});
 		}
-		return html(200, page("Fake CP", '<p>A stand-in for cp.pt used by tests. Nothing here is real.</p>'));
+		return html(200, page("Fake CP", "<p>A stand-in for cp.pt used by tests. Nothing here is real.</p>"));
 	});
 	return new Promise((resolve) => server.listen(port, "127.0.0.1", () => resolve({ server, origin: `http://127.0.0.1:${server.address().port}`, purchases, close: () => new Promise((r) => server.close(r)) })));
 }

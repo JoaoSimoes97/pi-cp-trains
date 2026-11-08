@@ -88,7 +88,8 @@ function drawPass() {
 		bar.className = "bar out";
 	}
 	const src = state.pass ? ` · from ${state.pass.source === "mycp" ? "myCP" : "you"}, ${when(state.pass.checkedAt)}` : "";
-	$("pass-text").textContent = state.pass ? `${state.pass.validFrom} to ${state.pass.validUntil}${src}` : "Set its dates below, or let pi read them from myCP.";
+	$("pass-text").textContent = state.pass ? `${state.pass.validFrom} to ${state.pass.validUntil}${state.pass.cardNumber ? ` · card ${state.pass.cardNumber}` : " · no card number"}${src}` : "Set its dates below, or let pi read them from myCP.";
+	if (state.pass?.cardNumber && !$("pass-card").value) $("pass-card").value = state.pass.cardNumber;
 }
 
 function bookingButtons(b) {
@@ -144,6 +145,8 @@ const form = () => ({
 	passengers: Number($("b-pax").value || 1),
 	travelClass: Number($("b-class").value),
 	usePass: $("b-pass").checked,
+	seatChoice: $("b-seat").value,
+	seatNote: $("b-seatnote").value.trim(),
 	expectedTotal: Number($("b-total").value || 0),
 	openHoursBefore: Number($("b-hours").value || 24),
 });
@@ -179,11 +182,11 @@ $("b-find").addEventListener("click", async () => {
 $("pass-form").addEventListener("submit", (e) => {
 	e.preventDefault();
 	const days = $("pass-days").value;
-	act({ action: "pass-set", validFrom: $("pass-from").value, days: days ? Number(days) : undefined, validUntil: days ? undefined : $("pass-until").value }, "Pass saved.");
+	act({ action: "pass-set", validFrom: $("pass-from").value, days: days ? Number(days) : undefined, validUntil: days ? undefined : $("pass-until").value, cardNumber: $("pass-card").value }, "Pass saved.");
 });
 $("pass-clear").addEventListener("click", () => act({ action: "pass-clear" }, "Pass forgotten."));
 $("pass-mycp").addEventListener("click", () =>
-	askPi("Open https://www.cp.pt in the Browser panel and go to my myCP area, Carteira > Cartões de Mobilidade. If it asks me to sign in, stop and let me sign in myself. Read my Passe Ferroviário Verde's first and last valid days and keep them with tool_cp_trains_pass_set (source \"mycp\"). Do not buy or change anything."),
+	askPi("Open https://www.cp.pt/pt/mycp/carteira in the Browser panel (myCP › A minha carteira). If it asks me to sign in, stop and let me sign in myself. Open my Cartão CP Digital, read its number and, under \"Títulos no cartão\", my Passe Ferroviário Verde's first and last valid days (\"dd/mm/yyyy até dd/mm/yyyy\"), and keep them with tool_cp_trains_pass_set (source \"mycp\"). Do not buy, renew or change anything."),
 );
 
 // --- list buttons -----------------------------------------------------------------------------

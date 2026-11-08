@@ -96,8 +96,17 @@ export default function (pi, { dataDir } = {}) {
 	tool(
 		"pass_set",
 		"Set the pass dates",
-		"Keep the dates of the user's Passe Ferroviário Verde. Use only dates the user told you, or that you read on their own myCP page (Carteira > Cartões de Mobilidade) in the Browser panel, signed in by them; say which with source. Give validUntil, or days (30, 60 or 90).",
-		obj({ validFrom: DATE, validUntil: S("The last valid day, YYYY-MM-DD"), days: N("30, 60 or 90, instead of validUntil"), source: S("\"manual\" (the user said) or \"mycp\" (read on myCP)") }, ["validFrom", "source"]),
+		"Keep the user's Passe Ferroviário Verde: its days and the Cartão CP number it is on. Use only what the user told you, or what you read on their own myCP page in the Browser panel, signed in by them (myCP › A minha carteira › the Cartão CP Digital: its number, and under \"Títulos no cartão\" a line like \"Passe Ferroviário Verde Digital 30 — 17/10/2026 até 15/11/2026\"); say which with source. Give validUntil, or days (30, 60 or 90).",
+		obj(
+			{
+				validFrom: DATE,
+				validUntil: S("The last valid day, YYYY-MM-DD"),
+				days: N("30, 60 or 90, instead of validUntil"),
+				cardNumber: S("The Cartão CP number, e.g. V0012345678 (CP's checkout asks for it with the pass)"),
+				source: S("\"manual\" (the user said) or \"mycp\" (read on myCP)"),
+			},
+			["validFrom", "source"],
+		),
 		async (p) => {
 			const pass = makePass({ kind: "verde", ...p });
 			await store.updateDoc(dataDir, (doc) => {
@@ -125,6 +134,8 @@ export default function (pi, { dataDir } = {}) {
 				passengers: N("1 to 9 (default 1)"),
 				travelClass: N("1 or 2 (default 2)"),
 				usePass: { type: "boolean", description: "Use the Passe Ferroviário Verde (default true)" },
+				seatChoice: S("\"cp\" (keep the seat CP picks, default) or \"emptiest\" (move to the emptiest carriage)"),
+				seatNote: S("Optional seat wish pi tries, e.g. \"with a socket\""),
 				expectedTotal: N("The total in euros the user expects (default 0 with the pass): pi stops if the page says otherwise"),
 			},
 			["from", "to", "date", "time"],
