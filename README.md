@@ -82,7 +82,7 @@ Signed in, with the pass, stopped before the last button (pi's steps follow exac
 
 Bought this way once, for real, on 2026-11-08: IC 621, Lisboa Oriente 11:39 → Porto Campanhã, carriage 24 seat 42, 0,00 €.
 
-Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Títulos no cartão* ("Passe Ferroviário Verde Digital 30 — 17/10/2026 até 15/11/2026"), with the card number above it. The Green Pass is taken on Intercidades.
+Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Títulos no cartão* ("Passe Ferroviário Verde Digital 30 — 01/12/2026 até 30/12/2026"), with the card number above it. The Green Pass is taken on Intercidades.
 
 ## Not known yet
 

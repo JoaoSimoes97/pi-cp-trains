@@ -96,7 +96,7 @@ export default function (pi, { dataDir } = {}) {
 	tool(
 		"pass_set",
 		"Set the pass dates",
-		"Keep the user's Passe Ferroviário Verde: its days and the Cartão CP number it is on. Use only what the user told you, or what you read on their own myCP page in the Browser panel, signed in by them (myCP › A minha carteira › the Cartão CP Digital: its number, and under \"Títulos no cartão\" a line like \"Passe Ferroviário Verde Digital 30 — 17/10/2026 até 15/11/2026\"); say which with source. Give validUntil, or days (30, 60 or 90).",
+		"Keep the user's Passe Ferroviário Verde: its days and the Cartão CP number it is on. Use only what the user told you, or what you read on their own myCP page in the Browser panel, signed in by them (myCP › A minha carteira › the Cartão CP Digital: its number, and under \"Títulos no cartão\" a line like \"Passe Ferroviário Verde Digital 30 — 01/12/2026 até 30/12/2026\"); say which with source. Give validUntil, or days (30, 60 or 90).",
 		obj(
 			{
 				validFrom: DATE,
