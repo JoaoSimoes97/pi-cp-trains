@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CP trains</title>
+<link rel="stylesheet" href="style.css">
+<main id="app">
+	<header class="row">
+		<h1>CP trains</h1>
+		<span class="spacer"></span>
+		<button id="refresh" class="link" type="button">Refresh</button>
+	</header>
+
+	<section id="pass-sec" aria-labelledby="pass-h">
+		<h2 id="pass-h">Passe Ferroviário Verde</h2>
+		<div class="card">
+			<div id="pass-big" class="big">No pass kept</div>
+			<div id="pass-bar" class="bar" hidden><i></i></div>
+			<div id="pass-text" class="muted"></div>
+			<details id="pass-edit">
+				<summary>Set the pass dates</summary>
+				<form id="pass-form">
+					<div class="grid">
+						<label for="pass-from">First day</label><input id="pass-from" type="date" required>
+						<label for="pass-days">Period</label>
+						<select id="pass-days"><option value="30">30 days</option><option value="60">60 days</option><option value="90">90 days</option><option value="">Last day below</option></select>
+						<label for="pass-until">Last day</label><input id="pass-until" type="date">
+					</div>
+					<div class="actions"><button class="primary" type="submit">Save</button><button id="pass-clear" class="danger" type="button">Forget the pass</button></div>
+				</form>
+			</details>
+			<div class="actions"><button id="pass-mycp" type="button" title="Types a request at pi's prompt: you press Enter, and sign in to cp.pt yourself">Read it from myCP with pi…</button></div>
+		</div>
+	</section>
+
+	<section aria-labelledby="book-h">
+		<h2 id="book-h">Bookings <span id="book-count" class="muted"></span></h2>
+		<ul id="bookings"></ul>
+		<p id="bookings-empty" class="muted" hidden>No bookings yet.</p>
+		<details id="new-booking">
+			<summary>New booking</summary>
+			<form id="booking-form" class="card">
+				<div class="grid">
+					<label for="b-from">From</label><input id="b-from" list="stations" required autocomplete="off">
+					<label for="b-to">To</label><input id="b-to" list="stations" required autocomplete="off">
+					<label for="b-date">Date</label><input id="b-date" type="date" required>
+					<label for="b-time">Departure</label><input id="b-time" type="time" required>
+					<label for="b-train">Train</label><input id="b-train" placeholder="optional, e.g. IC 523" autocomplete="off">
+					<label for="b-pax">Passengers</label><input id="b-pax" type="number" min="1" max="9" value="1">
+					<label for="b-class">Class</label><select id="b-class"><option value="2">2ª / Turística</option><option value="1">1ª / Conforto</option></select>
+					<label for="b-pass">Use the pass</label><input id="b-pass" type="checkbox" checked>
+					<label for="b-total">Expected total €</label><input id="b-total" type="number" min="0" step="0.01" value="0">
+					<label for="b-hours">CP opens it</label><span><input id="b-hours" type="number" min="0" max="1440" value="24" style="width:5em"> h before departure</span>
+				</div>
+				<p id="b-preview" class="note"></p>
+				<div class="actions">
+					<button class="primary" type="submit">Schedule</button>
+					<button id="b-fav" type="button">Keep as favourite</button>
+					<button id="b-find" type="button" title="Types a request at pi's prompt to open this search in the Browser panel">Find trains with pi…</button>
+				</div>
+			</form>
+		</details>
+		<p class="note">At its moment the booking is handed to pi, which buys it in the Browser panel. Keep pi cockpit open with a pi tab running, the computer awake, and <b>pi drives the browser</b> on. You get a notification 5 minutes before: sign in to cp.pt then. pi stops for your yes before the final confirm, and if the total is not the one expected.</p>
+	</section>
+
+	<section aria-labelledby="fav-h">
+		<h2 id="fav-h">Favourite routes</h2>
+		<ul id="favourites"></ul>
+		<p id="favourites-empty" class="muted" hidden>None yet: fill a new booking and press Keep as favourite.</p>
+	</section>
+
+	<datalist id="stations"></datalist>
+	<p id="status" role="status" aria-live="polite"></p>
+</main>
+<script type="module" src="app.js"></script>

@@ -1,0 +1,11 @@
+{
+	"name": "pi-cp-trains",
+	"version": "0.1.0",
+	"private": true,
+	"description": "A pi cockpit module for CP train tickets with the Passe Ferroviário Verde",
+	"type": "module",
+	"scripts": {
+		"test": "node --test \"test/*.test.mjs\""
+	},
+	"engines": { "node": ">=20" }
+}

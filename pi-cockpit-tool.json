@@ -1,0 +1,20 @@
+{
+	"manifestVersion": 2,
+	"id": "cp-trains",
+	"name": "CP trains",
+	"description": "CP train tickets with the Passe Ferroviário Verde: favourite routes, the pass's time left, and bookings scheduled for when CP opens them (24 h before), carried out by pi in the Browser panel.",
+	"permissions": ["notify", "status", "pi.insert", "pi.send", "panel.command"],
+	"piExtension": "pi/extension.mjs",
+	"panels": [
+		{ "id": "main", "title": "CP trains", "kind": "web", "source": "server", "dock": "right" }
+	],
+	"server": {
+		"command": ["node", "server.mjs"],
+		"start": "launch",
+		"readyPattern": "^PI_COCKPIT_TOOL_READY (http://127\\.0\\.0\\.1:\\d+/)",
+		"timeoutMs": 20000
+	},
+	"commands": [
+		{ "id": "show", "title": "Show CP trains", "show": "main" }
+	]
+}
