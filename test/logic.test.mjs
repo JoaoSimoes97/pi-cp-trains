@@ -5,7 +5,7 @@ import { parseSearchLink, searchLink, siteOrigin } from "../lib/links.mjs";
 import { coversDay, makePass, passStatus } from "../lib/pass.mjs";
 import { approve, cancel, due, makeBooking, notifyAt, opensAt } from "../lib/schedule.mjs";
 import { findStation } from "../lib/stations.mjs";
-import { bookingSteps, startPrompt } from "../lib/steps.mjs";
+import { bookingSteps, readinessPrompt, startPrompt } from "../lib/steps.mjs";
 
 const OR = { code: "94-31039", name: "Lisboa Oriente" };
 const CA = { code: "94-2006", name: "Porto Campanhã" };
@@ -122,4 +122,17 @@ test("pi's steps carry the link, the expected total and the stop rules", () => {
 	assert.throws(() => makePass({ validFrom: "2026-11-01", days: 30, cardNumber: "1234" }), /cardNumber/);
 	assert.match(bookingSteps(b, null, now), /WARNING: the pass/);
 	assert.match(startPrompt(b), new RegExp(`tool_cp_trains_booking_steps with id "${b.id}"`));
+});
+
+test("at CP's sign-in page pi asks pi cockpit to sign in, once; unattended, a refusal stops the booking", () => {
+	const now = at("2026-11-08T09:00");
+	const pass = makePass({ validFrom: "2026-11-01", days: 30, cardNumber: "V0012345678" }, now);
+	const attended = bookingSteps(makeBooking({ from: OR, to: CA, date: "2026-11-10", time: "08:39" }, { now }), pass, now);
+	assert.match(attended, /call pi_cockpit_browser_sign_in once/);
+	assert.match(attended, /never see it, never type it/);
+	assert.match(attended, /ask the user to sign in themselves/);
+	const night = bookingSteps(makeBooking({ from: OR, to: CA, date: "2026-11-10", time: "08:39", unattended: true }, { now }), pass, now);
+	assert.match(night, /report "stopped" with the note "signed out of cp\.pt"/);
+	assert.doesNotMatch(night, /ask the user to sign in themselves/);
+	assert.match(readinessPrompt(makeBooking({ from: OR, to: CA, date: "2026-11-10", time: "08:39" }, { now })), /call pi_cockpit_browser_sign_in once[\s\S]*Saved sign-ins/);
 });

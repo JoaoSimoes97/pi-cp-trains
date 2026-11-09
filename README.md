@@ -6,7 +6,7 @@ Train tickets on CP (Comboios de Portugal, cp.pt) with the **Passe Ferroviário 
 - **favourite routes**;
 - **bookings scheduled for the moment CP opens them** (24 hours before departure with the pass): 5 minutes before, a notification; at the opening, the booking is handed to pi, which buys it in pi cockpit's Browser panel.
 
-This is a proof of concept of the **attended** mode: you are at the computer. pi signs in only as far as you do (you type your own password), stops for your yes before the final confirm, and stops on its own if the total is not the one you expected. The goal is unattended booking; what that needs is under [Towards unattended](#towards-unattended).
+This is a proof of concept of the **attended** mode: you are at the computer. pi signs in with the sign-in you saved in pi cockpit (it never sees it; without one you sign in yourself), stops for your yes before the final confirm, and stops on its own if the total is not the one you expected. The goal is unattended booking; what that needs is under [Towards unattended](#towards-unattended).
 
 ## Install
 
@@ -28,7 +28,7 @@ Its server starts with the app (`"start": "launch"`), so bookings fire while the
 ## The rules pi follows
 
 - Only the Browser panel, on cp.pt and CP's own sign-in and payment pages. **Never CP's internal API** (it is not offered to anyone else; the module builds only cp.pt's own search address).
-- **Never** a password, a code, card details or an identity document number (the app's browser tools refuse the first three anyway). You sign in yourself, your profile fills in your document, and you pay on CP's own page (with the pass the total is 0 €).
+- **Never** a password, a code, card details or an identity document number (the app's browser tools refuse the first three anyway). pi cockpit signs you in with what you saved there (pi never sees it), your profile fills in your document, and you pay on CP's own page (with the pass the total is 0 €).
 - CP's terms box is ticked only for a booking you scheduled or approved yourself.
 - Everything inside CP's 15 minutes; if they run out, once more from the start.
 - No CAPTCHA or bot-check bypass: pi stops and hands over.
@@ -87,7 +87,7 @@ Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Tít
 ## Not known yet
 
 - The exact minute the pass's window opens. Seen: a train 26 h away opens the checkout, but **"Passe Ferroviário Verde" is missing from *Desconto***; one 20 h away has it. pi treats a missing option as "not open yet" and tries again. The window is a setting per booking (`openHoursBefore`, 24 by default).
-- How long a cp.pt sign-in lasts. Its sign-in page has **no "remember me"**.
+- How long a cp.pt sign-in lasts: more than 25 minutes idle, less than a night. Its sign-in page has **no "remember me"**.
 
 ## Readiness check and unattended bookings
 
@@ -96,6 +96,8 @@ Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Tít
 **Unattended** (a box in the booking form, yours only: pi's proposals never are): pi does not wait for a yes in chat before **Confirmar**; your Schedule was that yes. Every other rule stands (exactly the expected total, no payment method, no CAPTCHA, stop on any doubt).
 
 **Set cp.pt to "auto, terms included"** in pi cockpit's **Site trust…** (pi cockpit 0.10 or later). Then pi cockpit asks nothing on CP's buttons unless a page asks for money (a total above zero, or a way to pay), and ticks CP's terms box for you: with the Green Pass the total is 0,00 €, so a booking needs nobody there. At "ask" (the default), each of CP's buy, submit and confirm buttons asks **Allow once**, and a question nobody answers ends after 5 minutes: the booking then reports *stopped*. Not yet seen on the real site: whether the passenger step shows the full fare before the pass is applied (that would ask once at auto).
+
+**Save your cp.pt sign-in in pi cockpit** (0.13 or later), because CP signs you out overnight: open CP's sign-in page in the Browser panel (press *Entrar* on cp.pt), then **⋯ ▸ Saved sign-ins… ▸ Save a sign-in for https://login.cp.pt…**, and type your email and password in pi cockpit's own dialog. pi cockpit keeps it encrypted under your Windows account. At CP's sign-in page pi calls `pi_cockpit_browser_sign_in` once: pi cockpit types it into CP's form itself and submits, and pi learns only whether it went through. If it does not (no sign-in saved, a wrong password, a CAPTCHA, a second step), an unattended booking reports *stopped* ("signed out of cp.pt") and pi cockpit does not try again for 15 minutes. The readiness check 30 minutes before signs in the same way, so a missing or wrong sign-in shows there first.
 
 **Locked screen: works.** Tested 2026-11-08 with `test-probe/locked-screen.probe.mjs`: pi cockpit's real browser tools, driven by its fake pi in a throwaway profile, bought a fake ticket end to end (52 steps, screenshot included) with Windows locked the whole time. To run it (never your real profile; it needs a pi cockpit development checkout):
 
@@ -107,6 +109,6 @@ PI_COCKPIT_DIR=/path/to/pi-cockpit WAIT_BEFORE_S=60 node --test test-probe/locke
 
 What stands between this and booking at 3 a.m. with nobody there:
 
-1. **Signing in.** pi never types passwords. A cp.pt sign-in lasted at least 25 minutes idle; overnight is to be checked. If CP signs you out overnight, planned: a pi cockpit feature that fills a login kept in the OS's protected store (Electron safeStorage, Windows Credential Manager) on one exact sign-in page, the way a password manager does, without pi ever seeing it. Not a plain file.
+1. **Signing in: done** with pi cockpit 0.13's saved sign-ins (below). CP signs you out overnight (seen 2026-11-09).
 2. **The final confirm: done** with pi cockpit 0.10's site trust (above). A one-off approval per booking is for steps that cost money, later.
 3. **The computer awake** at that moment: leave it on and plugged in (a locked screen is fine).
