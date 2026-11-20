@@ -79,7 +79,7 @@ test("an older pi cockpit (no browser.pay): the booking stays as it was, and say
 		const app = fakeApp({ noApi: true });
 		const pay = await requestAllowance(dir, app, b.id);
 		assert.equal(pay.granted, false);
-		assert.match(booking(dir).pay.note, /pi cockpit 0\.19 or later/);
+		assert.match(booking(dir).pay.note, /pi cockpit 0\.20 or later/);
 		const r = await startBooking(dir, app, b.id, "test", at("2026-11-09T08:39"));
 		assert.equal(r.started, true, "the run starts as before");
 		assert.ok(!app.calls.some((c) => c.method === "browser.pay.arm"), "nothing to arm");

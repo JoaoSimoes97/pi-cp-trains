@@ -10,7 +10,7 @@ This is a proof of concept of the **attended** mode: you are at the computer. pi
 
 ## Install
 
-A module of your own: put this folder in your tools folder (**Tools ▸ Open my tools folder**), or **Install** its git URL in the Tools panel, then **Rescan** and allow it. The consent dialog lists what it asks for: notifications, the status bar, typing at pi's prompt (`pi.insert`), **sending pi prompts** (`pi.send`, which the app asks about with an extra warning: that is how a booking is handed to pi at its moment), pi's commands to its panel, a pi extension, and **payment allowances** (`browser.pay`, also with an extra warning: see below). It needs **pi cockpit 0.19 or later**: an older one does not know `browser.pay` and refuses the module (0.2.0 works there).
+A module of your own: put this folder in your tools folder (**Tools ▸ Open my tools folder**), or **Install** its git URL in the Tools panel, then **Rescan** and allow it. The consent dialog lists what it asks for: notifications, the status bar, typing at pi's prompt (`pi.insert`), **sending pi prompts** (`pi.send`, which the app asks about with an extra warning: that is how a booking is handed to pi at its moment), pi's commands to its panel, a pi extension, and **payment allowances** (`browser.pay`, also with an extra warning: see below). It needs **pi cockpit 0.20 or later**: an older one does not know `browser.pay` and refuses the module (0.2.0 works there).
 
 Its server starts with the app (`"start": "launch"`), so bookings fire while the panel is closed.
 
@@ -108,7 +108,7 @@ Your pass is on myCP › *A minha carteira* › the Cartão CP Digital › *Tít
 PI_COCKPIT_DIR=/path/to/pi-cockpit WAIT_BEFORE_S=60 node --test test-probe/locked-screen.probe.mjs
 ```
 
-## Paying up to an amount (0.3.0, pi cockpit 0.19)
+## Paying up to an amount (0.3.0, pi cockpit 0.20)
 
 At "auto", pi cockpit asks you before any step that pays on a page asking for money, so a booking that costs something would wait for you at night. **Allow paying up to €** in the booking form (0, the default, is none; at least the expected total; at most 500 €) asks pi cockpit, when you schedule the booking, to let pi pay up to that amount on cp.pt in that booking's run: pi cockpit shows **its own** dialog (the module cannot answer it), with **Don't allow** the default, and the booking shows what you answered. At the opening the module hands pi the booking and arms the allowance for that pi tab; pi cockpit ends it with the run (or after an hour), and the module ends it at the result, or revokes it when you cancel or remove the booking. In the run, a paid step on cp.pt goes ahead without asking only when the page's total is at most the amount; anything above asks you, and a page that asks for card details stops the run: pi never types card details or picks a way to pay, so only a way to pay already saved on your CP account can be used (pi's rules say the same: one already selected on the "Pagamento" step, with the expected total). Not yet tried on the real site with a paid ticket.
 
@@ -117,5 +117,5 @@ At "auto", pi cockpit asks you before any step that pays on a page asking for mo
 What stands between this and booking at 3 a.m. with nobody there:
 
 1. **Signing in: done** with pi cockpit 0.13's saved sign-ins (below). CP signs you out overnight (seen 2026-11-09).
-2. **The final confirm: done** with pi cockpit 0.10's site trust (above). **Steps that cost money: done** in 0.3.0 with pi cockpit 0.19's payment allowances (below).
+2. **The final confirm: done** with pi cockpit 0.10's site trust (above). **Steps that cost money: done** in 0.3.0 with pi cockpit 0.20's payment allowances (below).
 3. **The computer awake** at that moment: leave it on and plugged in (a locked screen is fine).

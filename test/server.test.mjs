@@ -114,7 +114,7 @@ test("a booking with Allow paying up to: the panel hears back at once; without p
 	}
 	assert.equal(b.payUpTo, 3);
 	assert.equal(b.pay.granted, false);
-	assert.match(b.pay.note, /pi cockpit 0\.19 or later/);
+	assert.match(b.pay.note, /pi cockpit 0\.20 or later/);
 	// cancel and remove go through without the API too
 	assert.equal((await req("/api/action", { body: { action: "booking-cancel", id: b.id } })).status, 200);
 	assert.equal((await req("/api/action", { body: { action: "booking-remove", id: b.id } })).status, 200);
