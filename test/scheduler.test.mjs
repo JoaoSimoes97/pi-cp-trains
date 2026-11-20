@@ -113,6 +113,7 @@ test("pi's report is notified once, with the reference, and stays to see until S
 		await tick(dir, app, at("2026-11-09T08:45:15"));
 		const done = notices(app).filter((c) => /booked/.test(c.params.title));
 		assert.equal(done.length, 1, "notified once");
+		assert.equal(done[0].params.persistent, true, "a result stays on screen until dismissed (pi cockpit 0.19.0; older versions ignore it)");
 		assert.match(done[0].params.body, /08:39 Lisboa Oriente → Porto Campanhã .*bought with the pass \(ref ABC123, 0\.00 €\)/);
 		const doc = store.loadDoc(dir);
 		assert.ok(doc.bookings[0].result.notifiedAt);
