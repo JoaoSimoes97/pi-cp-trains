@@ -11,7 +11,7 @@
 import path from "node:path";
 import { parseSearchLink, searchLink } from "../lib/links.mjs";
 import { makePass, passStatus } from "../lib/pass.mjs";
-import { describe, makeBooking, nextMoment, setState } from "../lib/schedule.mjs";
+import { describe, finish, makeBooking, nextMoment } from "../lib/schedule.mjs";
 import { allStations, findStation } from "../lib/stations.mjs";
 import { bookingSteps } from "../lib/steps.mjs";
 import * as store from "../lib/store.mjs";
@@ -174,17 +174,17 @@ export default function (pi, { dataDir } = {}) {
 	tool(
 		"booking_report",
 		"Report a CP booking",
-		"Say how a started booking ended: booked (with the reference and total from CP's page), failed (CP would not), or stopped (a rule said stop).",
+		"Say how a started booking ended: booked (with the reference and total from CP's page), failed (CP would not), or stopped (a rule said stop). The user gets it as a notification and in the panel. Also for a booking the module ended as \"no report\" because you were late: your report replaces that.",
 		obj({ id: S("The booking's id"), outcome: S("booked, failed or stopped"), reference: S("Optional: CP's ticket or booking reference"), total: N("Optional: the total the page showed, euros"), note: S("What happened, one line") }, ["id", "outcome", "note"]),
 		async ({ id, outcome, reference, total, note }) => {
 			if (!["booked", "failed", "stopped"].includes(outcome)) throw new Error("outcome must be booked, failed or stopped");
 			return store.updateDoc(dataDir, (doc) => {
 				const b = doc.bookings.find((x) => x.id === id);
 				if (!b) throw new Error(`no booking ${id}`);
-				if (b.state !== "started") throw new Error(`booking ${id} is ${b.state}, not started`);
-				b.result = { outcome, reference: String(reference ?? "").slice(0, 80), total: Number.isFinite(Number(total)) ? Number(total) : null, note: String(note ?? "").slice(0, 300) };
-				setState(b, outcome, note);
-				return { id, state: b.state };
+				const late = b.state === "failed" && b.result?.outcome === "no-report";
+				if (b.state !== "started" && !late) throw new Error(`booking ${id} is ${b.state}, not started`);
+				finish(b, outcome, { note, reference, total: total ?? null });
+				return { id, state: b.state, told: "the user is notified and sees it in the CP trains panel" };
 			});
 		},
 	);

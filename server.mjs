@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { appApi } from "./lib/appapi.mjs";
 import { searchLink } from "./lib/links.mjs";
 import { makePass, passStatus } from "./lib/pass.mjs";
-import { approve, cancel, describe, makeBooking, nextMoment, OPEN, opensAt } from "./lib/schedule.mjs";
+import { approve, cancel, describe, makeBooking, nextMoment, OPEN, opensAt, unseen } from "./lib/schedule.mjs";
 import { checkBooking, startBooking, statusText, tick } from "./lib/scheduler.mjs";
 import { allStations, findStation } from "./lib/stations.mjs";
 import * as store from "./lib/store.mjs";
@@ -98,6 +98,16 @@ const ACTIONS = {
 		if (OPEN.includes(byId(doc, b.id).state)) throw new Error("cancel it first");
 		store.removeById(doc.bookings, b.id, "booking");
 	},
+	// The user has seen a result: it leaves the "to see" list and the status bar.
+	"result-seen": (doc, b) => {
+		const x = byId(doc, b.id);
+		if (!x.result?.at) throw new Error("this booking has no result to see");
+		x.result.seenAt ??= new Date().toISOString();
+	},
+	"results-seen": (doc) => {
+		const at = new Date().toISOString();
+		for (const x of unseen(doc.bookings)) x.result.seenAt = at;
+	},
 };
 
 let lastStatus = null;
@@ -154,11 +164,16 @@ const server = http.createServer(async (req, res) => {
 });
 
 let ticking = false;
+// When the clock last looked: null until the first look, so what was due while pi cockpit was
+// closed is said as such; a long gap since the last look is the computer asleep (awayReason).
+let lastTickAt = null;
 async function loop() {
 	if (ticking) return;
 	ticking = true;
+	const now = new Date();
 	try {
-		await tick(DATA, api);
+		await tick(DATA, api, now, { lastTickAt });
+		lastTickAt = now;
 	} catch (e) {
 		console.error(`[cp-trains] tick failed: ${e?.message ?? e}`);
 	} finally {

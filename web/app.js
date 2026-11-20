@@ -96,23 +96,34 @@ function bookingButtons(b) {
 	const out = [];
 	if (b.state === "waiting-approval") out.push(`<button class="primary" data-act="booking-approve" data-id="${b.id}">Approve</button>`);
 	if (b.state === "scheduled" || b.state === "notified") out.push(`<button data-act="run-now" data-id="${b.id}" title="Hand it to pi now (when CP's window is already open)">Run now</button>`, `<button data-act="check-now" data-id="${b.id}" title="pi checks you are signed in to cp.pt and everything is in place (nothing is bought)">Check now</button>`);
+	if (isUnseen(b)) out.push(`<button class="primary" data-act="result-seen" data-id="${b.id}" title="It leaves the list of results to see and the status bar">Seen</button>`);
 	if (["waiting-approval", "scheduled", "notified", "started"].includes(b.state)) out.push(`<button class="danger" data-act="booking-cancel" data-id="${b.id}">Cancel</button>`);
 	else out.push(`<button class="danger" data-act="booking-remove" data-id="${b.id}">Remove</button>`);
 	return out.join("");
 }
 
+// A result the user has not pressed Seen on (results from before 0.2.0 have no `at`: seen).
+const isUnseen = (b) => Boolean(b.result?.at && !b.result.seenAt);
+const OUTCOME_WORDS = { booked: "Booked", failed: "Failed", stopped: "Stopped", "no-report": "No report from pi", missed: "Missed" };
+
 function drawBookings() {
 	const list = state.bookings;
 	const open = list.filter((b) => ["waiting-approval", "scheduled", "notified", "started"].includes(b.state)).length;
 	$("book-count").textContent = list.length ? `(${open} open)` : "";
+	const toSee = list.filter(isUnseen);
+	$("results-new").hidden = toSee.length === 0;
+	$("results-new-text").textContent = toSee.length === 1 ? "1 booking result to see (below)." : `${toSee.length} booking results to see (below).`;
+	// the ones to see first, the rest as they were (newest first)
+	list.sort((a, b) => Number(isUnseen(b)) - Number(isUnseen(a)));
 	$("bookings-empty").hidden = list.length > 0;
 	$("bookings").innerHTML = list
 		.map((b) => {
-			const next = b.state === "waiting-approval" ? `Waits for your Approve · CP opens it ${when(b.opensAt)}` : b.next ? `CP opens it ${when(b.opensAt)} (${inTime(b.opensAt)})` : b.history.at(-1)?.note ?? "";
+			const next = b.state === "waiting-approval" ? `Waits for your Approve · CP opens it ${when(b.opensAt)}` : b.next ? `CP opens it ${when(b.opensAt)} (${inTime(b.opensAt)})` : b.result?.at ? "" : b.history.at(-1)?.note ?? "";
 			const r = b.readiness;
 			const ready = !r ? "" : !r.reportedAt ? `<div class="note">Readiness: asked pi ${when(r.askedAt)}, no answer yet</div>` : r.ok ? `<div class="note">Readiness: ok (${when(r.reportedAt)})</div>` : `<div class="note warn">Not ready: ${esc((r.problems ?? []).join("; "))}</div>`;
-			const result = ready + (b.result ? `<div class="note">${esc(b.result.note)}${b.result.reference ? ` · ref ${esc(b.result.reference)}` : ""}${b.result.total !== null && b.result.total !== undefined ? ` · ${Number(b.result.total).toFixed(2)} €` : ""}</div>` : "");
-			return `<li class="card"><div class="row"><span class="what">${esc(b.time)} ${esc(b.from.name)} → ${esc(b.to.name)}</span><span class="spacer"></span><span class="state ${esc(b.state)}">${esc(b.state)}</span></div>
+			const outcome = b.result?.at ? `<strong>${esc(OUTCOME_WORDS[b.result.outcome] ?? b.result.outcome)}</strong> ${when(b.result.at)}: ` : "";
+			const result = ready + (b.result ? `<div class="note${isUnseen(b) ? " unseen" : ""}">${outcome}${esc(b.result.note)}${b.result.reference ? ` · ref ${esc(b.result.reference)}` : ""}${b.result.total !== null && b.result.total !== undefined ? ` · ${Number(b.result.total).toFixed(2)} €` : ""}</div>` : "");
+			return `<li class="card${isUnseen(b) ? " to-see" : ""}"><div class="row"><span class="what">${esc(b.time)} ${esc(b.from.name)} → ${esc(b.to.name)}</span><span class="spacer"></span><span class="state ${esc(b.state)}">${esc(b.state)}</span></div>
 				<div class="muted">${esc(b.date)}${b.train ? ` · ${esc(b.train)}` : ""} · ${b.passengers} pax · ${b.travelClass}ª · ${b.usePass ? "pass" : "no pass"} · expect ${b.expectedTotal.toFixed(2)} €${b.createdBy === "pi" ? " · proposed by pi" : ""}</div>
 				<div class="note">${esc(next)}</div>${result}<div class="actions">${bookingButtons(b)}</div></li>`;
 		})
@@ -198,7 +209,7 @@ document.addEventListener("click", (e) => {
 	const t = e.target.closest("button");
 	if (!t) return;
 	if (t.dataset.act) {
-		const msgs = { "check-now": "Asked pi to check: the answer shows here.", "booking-approve": "Approved: it will start at its moment.", "booking-cancel": "Cancelled.", "run-now": "Handed to pi.", "booking-remove": "Removed.", "favourite-remove": "Removed." };
+		const msgs = { "check-now": "Asked pi to check: the answer shows here.", "booking-approve": "Approved: it will start at its moment.", "booking-cancel": "Cancelled.", "run-now": "Handed to pi.", "booking-remove": "Removed.", "favourite-remove": "Removed.", "result-seen": "Marked seen.", "results-seen": "All marked seen." };
 		act({ action: t.dataset.act, id: t.dataset.id }, msgs[t.dataset.act]);
 	} else if (t.dataset.favBook) {
 		const f = state.favourites.find((x) => x.id === t.dataset.favBook);

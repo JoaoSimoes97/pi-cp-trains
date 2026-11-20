@@ -78,5 +78,23 @@ test("Run now without a running app: refused with the reason, booking marked fai
 	assert.match((await r.json()).error, /pi could not be given the booking/);
 	const after = await (await req("/api/state")).json();
 	assert.equal(after.bookings[0].state, "failed");
+	// its result is to see until Seen
+	assert.ok(after.bookings[0].result.at);
+	assert.equal(after.bookings[0].result.seenAt, null);
+	assert.equal((await req("/api/action", { body: { action: "result-seen", id } })).status, 200);
+	const seen = await (await req("/api/state")).json();
+	assert.ok(seen.bookings[0].result.seenAt);
 	assert.equal((await req("/api/action", { body: { action: "booking-remove", id } })).status, 200);
+});
+
+test("Seen: refused for a booking with no result; All seen marks every result", async () => {
+	assert.equal((await req("/api/action", { body: { action: "booking-add", from: "Oriente", to: "Campanhã", date: soon(5), time: "09:39" } })).status, 200);
+	const s = await (await req("/api/state")).json();
+	const r = await req("/api/action", { body: { action: "result-seen", id: s.bookings[0].id } });
+	assert.equal(r.status, 400);
+	assert.match((await r.json()).error, /no result to see/);
+	assert.equal((await req("/api/action", { body: { action: "run-now", id: s.bookings[0].id } })).status, 409);
+	assert.equal((await req("/api/action", { body: { action: "results-seen" } })).status, 200);
+	const after = await (await req("/api/state")).json();
+	assert.ok(after.bookings.every((b) => !b.result?.at || b.result.seenAt));
 });

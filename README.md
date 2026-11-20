@@ -24,6 +24,9 @@ Its server starts with the app (`"start": "launch"`), so bookings fire while the
    - At the opening: pi gets the booking and follows its steps: opens the search, picks the train, Comprar, the pass as ticket type, checks the total, asks you in chat, and confirms (the app's own **Allow once** question comes on top). It reports the reference, and the panel shows it.
    - **Run now** hands a scheduled booking to pi at once (when CP's window is already open).
 4. **What can go wrong is said:** pi cannot be reached (no pi tab) → *failed*, with the reason, and a notification; the moment passed with the app closed → *missed*; the total was not the expected one, a CAPTCHA, the pass not offered → pi stops and reports *stopped*.
+5. **The result reaches you, and waits for you.** Every end of a booking (*booked* with CP's reference and total, *failed*, *stopped*, *missed*, or *no report*) is one notification, and stays in the panel and the status bar ("CP: 1 result to see") until you press **Seen** on it (or **All seen**); the results to see come first in the list. pi cockpit's notifications cannot be asked to stay on screen, so the panel and the status bar are what keeps it for the morning.
+   - **No report:** a booking pi was given and did not report on within 45 minutes (or by the train's departure, if sooner) ends as *failed*, "no report", with the likely reason: pi cockpit was not running then, the computer was asleep (the module's clock saw no check for that long), or else pi stopped, its tab was closed, or it is stuck. If pi reports after all, its report replaces this one (and you are told again).
+   - *Missed* says the likely reason the same way.
 
 ## The rules pi follows
 
@@ -47,7 +50,7 @@ Its server starts with the app (`"start": "launch"`), so bookings fire while the
 | `tool_cp_trains_bookings` | bookings and what became of them |
 | `tool_cp_trains_booking_propose` | propose a booking (waits for your Approve) |
 | `tool_cp_trains_booking_steps` | the steps and rules for a started booking |
-| `tool_cp_trains_booking_report` | booked / failed / stopped, with the reference and total |
+| `tool_cp_trains_booking_report` | booked / failed / stopped, with the reference and total (also replaces a "no report" when pi is late) |
 
 ## What it keeps, and where
 

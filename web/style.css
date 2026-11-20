@@ -48,6 +48,9 @@ li.card .what { font-weight: 600; }
 .state.scheduled, .state.started { color: var(--accent); border-color: var(--accent); }
 .state.booked { color: var(--ok); border-color: var(--ok); }
 .state.failed, .state.missed, .state.stopped { color: var(--danger); border-color: var(--danger); }
+/* a result the user has not pressed Seen on */
+.card.to-see { border-color: var(--accent); border-left-width: 3px; }
+.note.unseen { color: var(--fg, inherit); }
 #status { color: var(--muted); margin: 8px 0 0; min-height: 1em; }
 #status.error { color: var(--danger); }
 details > summary { cursor: pointer; color: var(--accent); margin: 4px 0; }

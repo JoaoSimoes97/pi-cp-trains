@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import extension from "../pi/extension.mjs";
 import * as store from "../lib/store.mjs";
-import { setState } from "../lib/schedule.mjs";
+import { finish, setState } from "../lib/schedule.mjs";
 
 const manifest = JSON.parse(readFileSync(new URL("../pi-cockpit-tool.json", import.meta.url), "utf8"));
 
@@ -96,11 +96,38 @@ test("pi proposes; only a started booking gets steps and a report", async () => 
 		assert.equal(ok.error, false);
 		assert.match(ok.text, /Never type a password/);
 		const rep = await call(pi, "tool_cp_trains_booking_report", { id: p.data.id, outcome: "booked", reference: "ABC123", total: 0, note: "bought with the pass" });
-		assert.deepEqual(rep.data, { id: p.data.id, state: "booked" });
-		assert.equal(store.loadDoc(dataDir).bookings[0].result.reference, "ABC123");
+		assert.equal(rep.data.state, "booked");
+		assert.match(rep.data.told, /notified/);
+		const r = store.loadDoc(dataDir).bookings[0].result;
+		assert.equal(r.reference, "ABC123");
+		assert.equal(r.total, 0);
+		assert.equal(r.notifiedAt, null, "the scheduler notifies it");
+		assert.equal(r.seenAt, null);
+		assert.ok(r.at);
 		assert.ok((await call(pi, "tool_cp_trains_booking_report", { id: p.data.id, outcome: "booked", note: "again" })).error);
 		const list = await call(pi, "tool_cp_trains_bookings");
 		assert.equal(list.data[0].state, "booked");
+	} finally {
+		done();
+	}
+});
+
+test("a late report replaces the module's \"no report\"; any other ended booking refuses one", async () => {
+	const { pi, dataDir, done } = setup();
+	try {
+		const p = await call(pi, "tool_cp_trains_booking_propose", { from: "Oriente", to: "Campanhã", date: soon(3), time: "08:39" });
+		await store.updateDoc(dataDir, (doc) => {
+			setState(doc.bookings[0], "started", "test");
+			finish(doc.bookings[0], "no-report", { note: "no report: pi did not report", state: "failed", notified: true });
+		});
+		const rep = await call(pi, "tool_cp_trains_booking_report", { id: p.data.id, outcome: "booked", reference: "Z9", note: "bought, late" });
+		assert.equal(rep.error, false);
+		const b = store.loadDoc(dataDir).bookings[0];
+		assert.equal(b.state, "booked");
+		assert.equal(b.result.outcome, "booked");
+		assert.equal(b.result.notifiedAt, null, "notified again, with the real outcome");
+		await store.updateDoc(dataDir, (doc) => finish(doc.bookings[0], "failed", { note: "CP said no" }));
+		assert.ok((await call(pi, "tool_cp_trains_booking_report", { id: p.data.id, outcome: "booked", note: "x" })).error);
 	} finally {
 		done();
 	}
