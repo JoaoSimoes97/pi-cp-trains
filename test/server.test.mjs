@@ -98,3 +98,24 @@ test("Seen: refused for a booking with no result; All seen marks every result", 
 	const after = await (await req("/api/state")).json();
 	assert.ok(after.bookings.every((b) => !b.result?.at || b.result.seenAt));
 });
+
+test("a booking with Allow paying up to: the panel hears back at once; without pi cockpit's API it says the allowance is not there", async () => {
+	const r = await req("/api/action", { body: { action: "booking-add", from: "Oriente", to: "Campanhã", date: soon(6), time: "10:39", expectedTotal: 2.5, payUpTo: 3 } });
+	assert.equal(r.status, 200);
+	assert.equal((await r.json()).pay, "asking you in pi cockpit");
+	const bad = await req("/api/action", { body: { action: "booking-add", from: "Oriente", to: "Campanhã", date: soon(6), time: "11:39", expectedTotal: 5, payUpTo: 3 } });
+	assert.equal(bad.status, 400);
+	assert.match((await bad.json()).error, /below the expected total/);
+	let b;
+	for (let i = 0; i < 50; i++) {
+		b = (await (await req("/api/state")).json()).bookings.find((x) => x.time === "10:39");
+		if (b.pay) break;
+		await new Promise((res) => setTimeout(res, 100));
+	}
+	assert.equal(b.payUpTo, 3);
+	assert.equal(b.pay.granted, false);
+	assert.match(b.pay.note, /pi cockpit 0\.19 or later/);
+	// cancel and remove go through without the API too
+	assert.equal((await req("/api/action", { body: { action: "booking-cancel", id: b.id } })).status, 200);
+	assert.equal((await req("/api/action", { body: { action: "booking-remove", id: b.id } })).status, 200);
+});

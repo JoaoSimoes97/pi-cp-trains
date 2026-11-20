@@ -17,7 +17,7 @@ import { appApi } from "./lib/appapi.mjs";
 import { searchLink } from "./lib/links.mjs";
 import { makePass, passStatus } from "./lib/pass.mjs";
 import { approve, cancel, describe, makeBooking, nextMoment, OPEN, opensAt, unseen } from "./lib/schedule.mjs";
-import { checkBooking, startBooking, statusText, tick } from "./lib/scheduler.mjs";
+import { checkBooking, endAllowance, requestAllowance, startBooking, statusText, tick } from "./lib/scheduler.mjs";
 import { allStations, findStation } from "./lib/stations.mjs";
 import * as store from "./lib/store.mjs";
 
@@ -91,12 +91,22 @@ const ACTIONS = {
 	},
 	"favourite-add": (doc, b) => store.addFavourite(doc, { ...b, from: station(doc, b.from), to: station(doc, b.to) }),
 	"favourite-remove": (doc, b) => store.removeById(doc.favourites, b.id, "favourite"),
-	"booking-add": (doc, b) => doc.bookings.push(makeBooking({ ...b, from: station(doc, b.from), to: station(doc, b.to) }, { by: "panel" })),
+	// each answers the booking it touched, for its payment allowance (afterAction)
+	"booking-add": (doc, b) => {
+		const x = makeBooking({ ...b, from: station(doc, b.from), to: station(doc, b.to) }, { by: "panel" });
+		doc.bookings.push(x);
+		return structuredClone(x);
+	},
 	"booking-approve": (doc, b) => approve(byId(doc, b.id)),
-	"booking-cancel": (doc, b) => cancel(byId(doc, b.id)),
+	"booking-cancel": (doc, b) => {
+		cancel(byId(doc, b.id));
+		return structuredClone(byId(doc, b.id));
+	},
 	"booking-remove": (doc, b) => {
-		if (OPEN.includes(byId(doc, b.id).state)) throw new Error("cancel it first");
+		const x = structuredClone(byId(doc, b.id));
+		if (OPEN.includes(x.state)) throw new Error("cancel it first");
 		store.removeById(doc.bookings, b.id, "booking");
+		return x;
 	},
 	// The user has seen a result: it leaves the "to see" list and the status bar.
 	"result-seen": (doc, b) => {
@@ -153,9 +163,14 @@ const server = http.createServer(async (req, res) => {
 			}
 			const act = Object.hasOwn(ACTIONS, b.action) ? ACTIONS[b.action] : null;
 			if (!act) return send(400, { error: "unknown action" });
-			await store.updateDoc(DATA, (doc) => act(doc, b));
+			const touched = await store.updateDoc(DATA, (doc) => act(doc, b));
 			refreshStatus();
-			return send(200, { ok: true });
+			// A new booking with "Allow paying up to": pi cockpit asks the user to confirm it (its own
+			// dialog; the answer can take minutes, so the panel hears back at once and shows it later).
+			if (b.action === "booking-add" && touched?.payUpTo > 0) requestAllowance(DATA, api, touched.id).catch(() => {});
+			if (b.action === "booking-cancel") endAllowance(api, touched, { revoke: true });
+			if (b.action === "booking-remove") endAllowance(api, touched, { revoke: true });
+			return send(200, { ok: true, ...(b.action === "booking-add" && touched?.payUpTo > 0 ? { pay: "asking you in pi cockpit" } : {}) });
 		}
 		return send(404, { error: "not found" });
 	} catch (e) {

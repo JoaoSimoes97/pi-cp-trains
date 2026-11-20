@@ -3,7 +3,7 @@
 	"id": "cp-trains",
 	"name": "CP trains",
 	"description": "CP train tickets with the Passe Ferroviário Verde: favourite routes, the pass's time left, and bookings scheduled for when CP opens them (24 h before), carried out by pi in the Browser panel.",
-	"permissions": ["notify", "status", "pi.insert", "pi.send", "panel.command"],
+	"permissions": ["notify", "status", "pi.insert", "pi.send", "panel.command", "browser.pay"],
 	"piExtension": "pi/extension.mjs",
 	"panels": [
 		{ "id": "main", "title": "CP trains", "kind": "web", "source": "server", "dock": "right" }

@@ -122,7 +122,9 @@ function drawBookings() {
 			const r = b.readiness;
 			const ready = !r ? "" : !r.reportedAt ? `<div class="note">Readiness: asked pi ${when(r.askedAt)}, no answer yet</div>` : r.ok ? `<div class="note">Readiness: ok (${when(r.reportedAt)})</div>` : `<div class="note warn">Not ready: ${esc((r.problems ?? []).join("; "))}</div>`;
 			const outcome = b.result?.at ? `<strong>${esc(OUTCOME_WORDS[b.result.outcome] ?? b.result.outcome)}</strong> ${when(b.result.at)}: ` : "";
-			const result = ready + (b.result ? `<div class="note${isUnseen(b) ? " unseen" : ""}">${outcome}${esc(b.result.note)}${b.result.reference ? ` · ref ${esc(b.result.reference)}` : ""}${b.result.total !== null && b.result.total !== undefined ? ` · ${Number(b.result.total).toFixed(2)} €` : ""}</div>` : "");
+			// the payment allowance (pi cockpit 0.19+): asked, allowed or not, armed
+			const pay = b.payUpTo > 0 ? `<div class="note${b.pay && !b.pay.granted ? " warn" : ""}">Pay up to ${b.payUpTo.toFixed(2)} €: ${esc(b.pay ? b.pay.note : "asking you in pi cockpit…")}</div>` : "";
+			const result = pay + ready + (b.result ? `<div class="note${isUnseen(b) ? " unseen" : ""}">${outcome}${esc(b.result.note)}${b.result.reference ? ` · ref ${esc(b.result.reference)}` : ""}${b.result.total !== null && b.result.total !== undefined ? ` · ${Number(b.result.total).toFixed(2)} €` : ""}</div>` : "");
 			return `<li class="card${isUnseen(b) ? " to-see" : ""}"><div class="row"><span class="what">${esc(b.time)} ${esc(b.from.name)} → ${esc(b.to.name)}</span><span class="spacer"></span><span class="state ${esc(b.state)}">${esc(b.state)}</span></div>
 				<div class="muted">${esc(b.date)}${b.train ? ` · ${esc(b.train)}` : ""} · ${b.passengers} pax · ${b.travelClass}ª · ${b.usePass ? "pass" : "no pass"} · expect ${b.expectedTotal.toFixed(2)} €${b.createdBy === "pi" ? " · proposed by pi" : ""}</div>
 				<div class="note">${esc(next)}</div>${result}<div class="actions">${bookingButtons(b)}</div></li>`;
@@ -162,6 +164,7 @@ const form = () => ({
 	unattended: $("b-unattended").checked,
 	seatNote: $("b-seatnote").value.trim(),
 	expectedTotal: Number($("b-total").value || 0),
+	payUpTo: Number($("b-payupto").value || 0),
 	openHoursBefore: Number($("b-hours").value || 24),
 });
 function preview() {
